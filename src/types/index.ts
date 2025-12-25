@@ -1,5 +1,18 @@
 // TypeScript type definitions for LinkPro
 
+// Re-export Zod inferred types for convenience
+export type {
+  CreateLinkInput,
+  UpdateLinkInput,
+  UpdateProfileInput,
+  RegisterInput,
+  LoginInput,
+} from '@/lib/validations';
+
+// Theme type - matches Zod schema
+export type ThemeType = 'aurora' | 'cyber' | 'glass';
+
+// User interface - matches Prisma User model
 export interface User {
   id: string;
   email: string;
@@ -12,6 +25,7 @@ export interface User {
   updatedAt: Date;
 }
 
+// Link interface - matches Prisma Link model
 export interface Link {
   id: string;
   userId: string;
@@ -24,8 +38,7 @@ export interface Link {
   updatedAt: Date;
 }
 
-export type ThemeType = 'aurora' | 'cyber' | 'glass';
-
+// Theme configuration for customization
 export interface ThemeConfig {
   type: ThemeType;
   primaryColor: string;
@@ -34,6 +47,7 @@ export interface ThemeConfig {
   textColor: string;
 }
 
+// Editor state interface for Zustand store
 export interface EditorState {
   links: Link[];
   theme: ThemeType;
@@ -51,7 +65,13 @@ export interface EditorState {
   resetDirty: () => void;
 }
 
-// Server Action result type
+// Server Action result type - generic wrapper for action responses
 export type ActionResult<T> = 
   | { success: true; data: T }
   | { success: false; error: string };
+
+// Theme props for theme components
+export interface ThemeProps {
+  links: Link[];
+  user: Pick<User, 'name' | 'bio' | 'avatarUrl'>;
+}

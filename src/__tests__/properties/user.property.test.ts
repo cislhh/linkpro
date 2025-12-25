@@ -78,6 +78,18 @@ async function getUserByEmailDirect(email: string) {
   });
 }
 
+// Direct function to check if username exists
+async function getUserByUsernameDirect(username: string) {
+  return testPrisma.user.findUnique({
+    where: { username },
+    select: {
+      id: true,
+      email: true,
+      username: true,
+    },
+  });
+}
+
 describe("User Registration Property Tests", () => {
   beforeAll(async () => {
     // Ensure database connection is ready
@@ -161,6 +173,104 @@ describe("User Registration Property Tests", () => {
           where: { email: { in: createdEmails } },
         });
       }
+    }
+  });
+
+  it("Property 2: Username Uniqueness", { timeout: 120000 }, async () => {
+    /**
+     * **Feature: linkpro, Property 2: Username Uniqueness**
+     * **Validates: Requirements 1.3**
+     *
+     * For any set of registered users, all usernames must be unique -
+     * no two users can have the same username.
+     */
+    const createdEmails: string[] = [];
+
+    try {
+      await fc.assert(
+        fc.asyncProperty(
+          validUsernameArb,
+          validPasswordArb,
+          fc.integer({ min: 1, max: 100000 }), // unique suffix
+          async (username, password, suffix) => {
+            // Create a unique username for this test
+            const testUsername = `uniq_${suffix}_${username}`;
+            const firstEmail = `test_pbt_first_${suffix}@test.com`;
+            const secondEmail = `test_pbt_second_${suffix}@test.com`;
+
+            // First, clean up any existing users with these emails
+            await testPrisma.user.deleteMany({
+              where: { email: { in: [firstEmail, secondEmail] } },
+            });
+
+            // Register the first user with the username
+            const firstUser = await registerUserDirect({
+              email: firstEmail,
+              password,
+              username: testUsername,
+            });
+            createdEmails.push(firstEmail);
+
+            expect(firstUser).toBeDefined();
+            expect(firstUser.username).toBe(testUsername);
+
+            // Verify the username exists in the database
+            const existingUser = await getUserByUsernameDirect(testUsername);
+            expect(existingUser).not.toBeNull();
+            expect(existingUser?.username).toBe(testUsername);
+
+            // Attempt to register a second user with the SAME username
+            // This should fail due to unique constraint
+            let duplicateCreationFailed = false;
+            try {
+              await registerUserDirect({
+                email: secondEmail,
+                password,
+                username: testUsername, // Same username as first user
+              });
+              // If we reach here, the duplicate was allowed (which is wrong)
+              createdEmails.push(secondEmail);
+            } catch (error) {
+              // Expected: unique constraint violation
+              if (
+                error instanceof Error &&
+                error.message.includes("Unique constraint")
+              ) {
+                duplicateCreationFailed = true;
+              } else {
+                throw error;
+              }
+            }
+
+            // Assert that duplicate username creation was rejected
+            expect(duplicateCreationFailed).toBe(true);
+
+            // Verify only one user exists with this username
+            const usersWithUsername = await testPrisma.user.findMany({
+              where: { username: testUsername },
+            });
+            expect(usersWithUsername.length).toBe(1);
+            expect(usersWithUsername[0].id).toBe(firstUser.id);
+          }
+        ),
+        { numRuns: 100 }
+      );
+    } finally {
+      // Cleanup all created users
+      if (createdEmails.length > 0) {
+        await testPrisma.user.deleteMany({
+          where: { email: { in: createdEmails } },
+        });
+      }
+      // Also cleanup by pattern
+      await testPrisma.user.deleteMany({
+        where: {
+          OR: [
+            { email: { startsWith: "test_pbt_first_" } },
+            { email: { startsWith: "test_pbt_second_" } },
+          ],
+        },
+      });
     }
   });
 });
