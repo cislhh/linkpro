@@ -118,3 +118,47 @@ export async function updateLink(
     return { success: false, error: "Failed to update link" };
   }
 }
+
+
+/**
+ * Delete an existing link for the authenticated user
+ * 
+ * - Checks user authentication
+ * - Verifies link ownership
+ * - Deletes link from database
+ * 
+ * Requirements: 2.3
+ */
+export async function deleteLink(id: string): Promise<ActionResult<void>> {
+  try {
+    // 1. Check authentication
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Authentication required" };
+    }
+
+    // 2. Verify link exists and belongs to the user
+    const existingLink = await prisma.link.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
+
+    if (!existingLink) {
+      return { success: false, error: "Link not found" };
+    }
+
+    if (existingLink.userId !== session.user.id) {
+      return { success: false, error: "Not authorized to delete this link" };
+    }
+
+    // 3. Delete link from database
+    await prisma.link.delete({
+      where: { id },
+    });
+
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("deleteLink error:", error);
+    return { success: false, error: "Failed to delete link" };
+  }
+}
