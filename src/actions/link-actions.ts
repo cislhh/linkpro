@@ -162,3 +162,56 @@ export async function deleteLink(id: string): Promise<ActionResult<void>> {
     return { success: false, error: "Failed to delete link" };
   }
 }
+
+
+/**
+ * Reorder links for the authenticated user
+ * 
+ * - Checks user authentication
+ * - Validates all link IDs belong to the user
+ * - Batch updates link order based on array position
+ * 
+ * Requirements: 2.4
+ */
+export async function reorderLinks(linkIds: string[]): Promise<ActionResult<void>> {
+  try {
+    // 1. Check authentication
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Authentication required" };
+    }
+
+    // 2. Validate input - must be non-empty array
+    if (!Array.isArray(linkIds) || linkIds.length === 0) {
+      return { success: false, error: "Link IDs array is required" };
+    }
+
+    // 3. Verify all links exist and belong to the user
+    const existingLinks = await prisma.link.findMany({
+      where: {
+        id: { in: linkIds },
+        userId: session.user.id,
+      },
+      select: { id: true },
+    });
+
+    if (existingLinks.length !== linkIds.length) {
+      return { success: false, error: "One or more links not found or not authorized" };
+    }
+
+    // 4. Batch update link orders using a transaction
+    await prisma.$transaction(
+      linkIds.map((id, index) =>
+        prisma.link.update({
+          where: { id },
+          data: { order: index },
+        })
+      )
+    );
+
+    return { success: true, data: undefined };
+  } catch (error) {
+    console.error("reorderLinks error:", error);
+    return { success: false, error: "Failed to reorder links" };
+  }
+}
