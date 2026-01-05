@@ -6,22 +6,28 @@
  */
 
 export { BaseTheme } from './base-theme';
+export { AuroraTheme } from './aurora-theme';
+export { CyberTheme } from './cyber-theme';
+export { GlassTheme } from './glass-theme';
 
 // Theme registry - 用于动态加载主题
 import type { ThemeType, ThemeComponent } from '@/types';
+import { AuroraTheme } from './aurora-theme';
+import { CyberTheme } from './cyber-theme';
+import { GlassTheme } from './glass-theme';
 
-// 主题组件映射表 - 将在具体主题实现后填充
-export const themeRegistry: Record<ThemeType, ThemeComponent | null> = {
-  aurora: null,  // TODO: Task 16.1
-  cyber: null,   // TODO: Task 16.2
-  glass: null,   // TODO: Task 16.3
+// 主题组件映射表
+export const themeRegistry: Record<ThemeType, ThemeComponent> = {
+  aurora: AuroraTheme,
+  cyber: CyberTheme,
+  glass: GlassTheme,
 };
 
 /**
  * 获取主题组件
  * @param theme - 主题类型
- * @returns 对应的主题组件，如果不存在则返回 null
+ * @returns 对应的主题组件
  */
-export function getThemeComponent(theme: ThemeType): ThemeComponent | null {
+export function getThemeComponent(theme: ThemeType): ThemeComponent {
   return themeRegistry[theme];
 }
