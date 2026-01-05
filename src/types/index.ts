@@ -73,5 +73,9 @@ export type ActionResult<T> =
 // Theme props for theme components
 export interface ThemeProps {
   links: Link[];
-  user: Pick<User, 'name' | 'bio' | 'avatarUrl'>;
+  user: Pick<User, 'name' | 'bio' | 'avatarUrl' | 'username'>;
+  className?: string;
 }
+
+// Base theme component type
+export type ThemeComponent = React.ComponentType<ThemeProps>;
