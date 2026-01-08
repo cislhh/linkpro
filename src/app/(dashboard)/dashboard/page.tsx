@@ -1,53 +1,93 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link2, Eye, Palette } from "lucide-react";
-import { LinkList } from "@/components/features/link-editor";
+import { LayoutGrid, Eye, Palette } from "lucide-react";
+import { ModuleSelector, ModuleList } from "@/components/features/modules";
 import { LivePreview } from "@/components/features/preview";
 import { useEditorStore } from "@/stores/editor-store";
 import { getUserLinks } from "@/actions/link-actions";
+import { getModules } from "@/actions/module-actions";
+import type { PageModule } from "@/types";
 
 /**
  * Dashboard Page
  * 
- * Main dashboard with link editor and real-time preview side by side.
+ * Main dashboard with module management and real-time preview.
+ * Updated to support the new page module system.
  * 
- * Requirements: 4.1, 4.2, 4.3, 4.4, 6.1
+ * Requirements: 4.1, 4.2, 4.3, 4.4, 6.1, 11.1, 11.3, 11.4
  */
 export default function DashboardPage() {
     const { data: session } = useSession();
     const { links, theme, setLinks } = useEditorStore();
+    const [modules, setModules] = useState<PageModule[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     // Get user info from session
     const userName = session?.user?.name;
     const userAvatar = session?.user?.image;
 
     /**
-     * Load links from server on initial mount
-     * This ensures the store is populated with the latest data from the database
+     * Load modules and links from server on initial mount
      * 
-     * Requirements: 2.2
+     * Requirements: 11.1, 2.2
      */
-    useEffect(() => {
-        async function loadLinks() {
-            const result = await getUserLinks();
-            if (result.success) {
-                setLinks(result.data);
+    const loadData = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const [linksResult, modulesResult] = await Promise.all([
+                getUserLinks(),
+                getModules(),
+            ]);
+
+            if (linksResult.success) {
+                setLinks(linksResult.data);
             }
+
+            if (modulesResult.success) {
+                setModules(modulesResult.data);
+            }
+        } finally {
+            setIsLoading(false);
         }
-        loadLinks();
     }, [setLinks]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
+
+    /**
+     * Handle module creation - add to local state
+     */
+    const handleModuleCreated = (module: PageModule) => {
+        setModules((prev) => [...prev, module]);
+    };
+
+    /**
+     * Handle module deletion - remove from local state
+     */
+    const handleModuleDeleted = (moduleId: string) => {
+        setModules((prev) => prev.filter((m) => m.id !== moduleId));
+    };
+
+    /**
+     * Handle module edit - placeholder for future implementation
+     */
+    const handleModuleEdit = (module: PageModule) => {
+        // TODO: Open edit dialog/form for the module
+        console.log("Edit module:", module);
+    };
 
     return (
         <div className="flex h-full gap-6">
-            {/* Left Side - Link Editor */}
+            {/* Left Side - Module Management */}
             <div className="flex-1 space-y-6 overflow-auto">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+                    <h1 className="text-3xl font-bold tracking-tight">页面管理</h1>
                     <p className="text-muted-foreground">
-                        管理你的链接和个人主页设置
+                        管理你的页面模块和个人主页设置
                     </p>
                 </div>
 
@@ -55,13 +95,13 @@ export default function DashboardPage() {
                 <div className="grid gap-4 md:grid-cols-3">
                     <Card>
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">链接数量</CardTitle>
-                            <Link2 className="h-4 w-4 text-muted-foreground" />
+                            <CardTitle className="text-sm font-medium">模块数量</CardTitle>
+                            <LayoutGrid className="h-4 w-4 text-muted-foreground" />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-bold">{links.length}</div>
+                            <div className="text-2xl font-bold">{modules.length}</div>
                             <p className="text-xs text-muted-foreground">
-                                {links.filter((l) => l.isActive).length} 个活跃链接
+                                {links.length} 个链接
                             </p>
                         </CardContent>
                     </Card>
@@ -93,18 +133,23 @@ export default function DashboardPage() {
                     </Card>
                 </div>
 
-                {/* Link Editor */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>我的链接</CardTitle>
-                        <CardDescription>
-                            在这里管理你的社交链接，支持拖拽排序
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <LinkList />
-                    </CardContent>
-                </Card>
+                {/* Module Selector */}
+                <ModuleSelector onModuleCreated={handleModuleCreated} />
+
+                {/* Module List */}
+                {isLoading ? (
+                    <Card>
+                        <CardContent className="flex items-center justify-center py-12">
+                            <div className="text-muted-foreground">加载中...</div>
+                        </CardContent>
+                    </Card>
+                ) : (
+                    <ModuleList
+                        modules={modules}
+                        onModuleDeleted={handleModuleDeleted}
+                        onModuleEdit={handleModuleEdit}
+                    />
+                )}
             </div>
 
             {/* Right Side - Live Preview */}

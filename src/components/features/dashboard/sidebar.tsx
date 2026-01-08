@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-    Link2,
+    LayoutGrid,
     Palette,
     Eye,
     Settings,
@@ -11,7 +11,9 @@ import {
     ChevronLeft,
     ChevronRight,
     User,
-    ExternalLink
+    ExternalLink,
+    Grid3X3,
+    Link2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -28,11 +30,25 @@ interface NavItem {
     icon: React.ReactNode;
 }
 
+/**
+ * Navigation items for the dashboard sidebar
+ * 
+ * Updated to reflect the new page module system:
+ * - "页面管理" replaces "链接管理" for managing all module types
+ * - "布局编辑" added for drag-and-drop layout customization
+ * 
+ * Requirements: 11.1, 12.1
+ */
 const navItems: NavItem[] = [
     {
         href: "/dashboard",
-        label: "链接管理",
-        icon: <Link2 className="h-5 w-5" />,
+        label: "页面管理",
+        icon: <LayoutGrid className="h-5 w-5" />,
+    },
+    {
+        href: "/dashboard/layout-editor",
+        label: "布局编辑",
+        icon: <Grid3X3 className="h-5 w-5" />,
     },
     {
         href: "/dashboard/themes",

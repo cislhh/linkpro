@@ -10,6 +10,8 @@ export { LinksModule } from "./links-module";
 export { BioModule } from "./bio-module";
 export { SkillsModule } from "./skills-module";
 export { ProjectsModule } from "./projects-module";
+export { ModuleSelector } from "./module-selector";
+export { ModuleList } from "./module-list";
 
 // Re-export types for convenience
 export type { PageModule, ModuleType, ModuleData } from "@/types";
