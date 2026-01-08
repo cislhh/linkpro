@@ -12,8 +12,9 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { GripVertical, MoreVertical, Pencil, Trash2, ExternalLink } from "lucide-react";
+import { GripVertical, MoreVertical, Pencil, Trash2, ExternalLink, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
+import { getIconById } from "@/lib/icon-dictionary";
 import type { Link } from "@/types";
 
 interface LinkItemProps {
@@ -97,6 +98,15 @@ export function LinkItem({ link, onEdit }: LinkItemProps) {
                 {/* Link Info */}
                 <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
+                        {/* Display icon from dictionary */}
+                        {link.icon && (() => {
+                            const iconDef = getIconById(link.icon);
+                            if (iconDef) {
+                                const IconComponent = iconDef.icon;
+                                return <IconComponent className="h-4 w-4 text-muted-foreground shrink-0" />;
+                            }
+                            return <LinkIcon className="h-4 w-4 text-muted-foreground shrink-0" />;
+                        })()}
                         <h3 className="font-medium truncate">{link.title}</h3>
                         {!link.isActive && (
                             <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">

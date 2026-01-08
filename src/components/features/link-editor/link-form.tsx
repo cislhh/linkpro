@@ -24,13 +24,21 @@ import {
     DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { IconSelect } from "./icon-select";
+import { getAllIconIds } from "@/lib/icon-dictionary";
 import type { Link } from "@/types";
 
-// Form-specific schema for the UI
+// Get valid icon IDs for validation
+const validIconIds = getAllIconIds();
+
+// Form-specific schema for the UI with icon validation
 const linkFormSchema = z.object({
     title: z.string().min(1, "Title is required").max(100, "Title too long"),
     url: z.string().url("Invalid URL format"),
-    icon: z.string().optional(),
+    icon: z.string().refine(
+        (val) => val === "" || validIconIds.includes(val),
+        { message: "Please select a valid icon" }
+    ).optional(),
 });
 
 type LinkFormValues = z.infer<typeof linkFormSchema>;
@@ -187,12 +195,12 @@ export function LinkForm({ open, onOpenChange, editingLink, onSuccess }: LinkFor
                             name="icon"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Icon (optional)</FormLabel>
+                                    <FormLabel>图标 (可选)</FormLabel>
                                     <FormControl>
-                                        <Input
-                                            placeholder="github, twitter, linkedin..."
-                                            {...field}
-                                            value={field.value ?? ""}
+                                        <IconSelect
+                                            value={field.value}
+                                            onChange={(iconId) => field.onChange(iconId ?? "")}
+                                            placeholder="选择图标 (可选)"
                                         />
                                     </FormControl>
                                     <FormMessage />
