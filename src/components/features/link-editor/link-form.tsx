@@ -1,9 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { createLink, updateLink } from "@/actions/link-actions";
+import { createLink, updateLink, getUserLinks } from "@/actions/link-actions";
 import { useEditorStore } from "@/stores/editor-store";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,6 +39,7 @@ interface LinkFormProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     editingLink?: Link | null;
+    onSuccess?: () => void;
 }
 
 /**
@@ -46,28 +48,51 @@ interface LinkFormProps {
  * A dialog form for adding and editing links.
  * Uses React Hook Form with Zod validation.
  * 
- * Requirements: 2.1, 2.2
+ * Requirements: 2.1, 2.2, 2.8
  */
-export function LinkForm({ open, onOpenChange, editingLink }: LinkFormProps) {
-    const { setLinks, links } = useEditorStore();
+export function LinkForm({ open, onOpenChange, editingLink, onSuccess }: LinkFormProps) {
+    const { setLinks } = useEditorStore();
     const isEditing = !!editingLink;
 
     const form = useForm<LinkFormValues>({
         resolver: zodResolver(linkFormSchema),
         defaultValues: {
-            title: editingLink?.title ?? "",
-            url: editingLink?.url ?? "",
-            icon: editingLink?.icon ?? "",
+            title: "",
+            url: "",
+            icon: "",
         },
     });
 
+    /**
+     * Reset form when editingLink changes (edit mode initialization)
+     * This ensures the form is pre-populated with saved values when editing
+     * 
+     * Requirements: 2.8
+     */
+    useEffect(() => {
+        if (editingLink) {
+            form.reset({
+                title: editingLink.title,
+                url: editingLink.url,
+                icon: editingLink.icon ?? "",
+            });
+        } else {
+            form.reset({
+                title: "",
+                url: "",
+                icon: "",
+            });
+        }
+    }, [editingLink, form]);
+
     // Reset form when dialog opens with new data
     const handleOpenChange = (newOpen: boolean) => {
-        if (newOpen) {
+        if (!newOpen) {
+            // Clear form when closing
             form.reset({
-                title: editingLink?.title ?? "",
-                url: editingLink?.url ?? "",
-                icon: editingLink?.icon ?? "",
+                title: "",
+                url: "",
+                icon: "",
             });
         }
         onOpenChange(newOpen);
@@ -83,13 +108,15 @@ export function LinkForm({ open, onOpenChange, editingLink }: LinkFormProps) {
                     icon: data.icon || undefined,
                 });
                 if (result.success) {
-                    // Update the link in the store
-                    setLinks(
-                        links.map((l) => (l.id === editingLink.id ? result.data : l))
-                    );
+                    // Refresh links from server to ensure data consistency
+                    const linksResult = await getUserLinks();
+                    if (linksResult.success) {
+                        setLinks(linksResult.data);
+                    }
                     toast.success("Link updated successfully");
                     onOpenChange(false);
                     form.reset();
+                    onSuccess?.();
                 } else {
                     toast.error(result.error);
                 }
@@ -103,11 +130,15 @@ export function LinkForm({ open, onOpenChange, editingLink }: LinkFormProps) {
                     isActive: true,
                 });
                 if (result.success) {
-                    // Add the new link to the store
-                    setLinks([...links, result.data]);
+                    // Refresh links from server to ensure data consistency
+                    const linksResult = await getUserLinks();
+                    if (linksResult.success) {
+                        setLinks(linksResult.data);
+                    }
                     toast.success("Link created successfully");
                     onOpenChange(false);
                     form.reset();
+                    onSuccess?.();
                 } else {
                     toast.error(result.error);
                 }

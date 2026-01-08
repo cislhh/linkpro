@@ -7,6 +7,35 @@ import { createLinkSchema, updateLinkSchema, type CreateLinkInput, type UpdateLi
 import type { Link, ActionResult } from "@/types";
 
 /**
+ * Get all links for the authenticated user
+ * 
+ * - Checks user authentication
+ * - Returns all links ordered by their order field
+ * 
+ * Requirements: 2.2
+ */
+export async function getUserLinks(): Promise<ActionResult<Link[]>> {
+  try {
+    // 1. Check authentication
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Authentication required" };
+    }
+
+    // 2. Get all links for the user, ordered by order field
+    const links = await prisma.link.findMany({
+      where: { userId: session.user.id },
+      orderBy: { order: "asc" },
+    });
+
+    return { success: true, data: links };
+  } catch (error) {
+    console.error("getUserLinks error:", error);
+    return { success: false, error: "Failed to get links" };
+  }
+}
+
+/**
  * Create a new link for the authenticated user
  * 
  * - Validates input using Zod schema

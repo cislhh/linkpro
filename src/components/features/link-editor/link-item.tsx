@@ -3,7 +3,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useEditorStore } from "@/stores/editor-store";
-import { deleteLink } from "@/actions/link-actions";
+import { deleteLink, getUserLinks } from "@/actions/link-actions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -27,7 +27,7 @@ interface LinkItemProps {
  * A single link card with drag handle, edit and delete actions.
  * Uses @dnd-kit/sortable for drag-and-drop functionality.
  * 
- * Requirements: 2.2, 2.3
+ * Requirements: 2.2, 2.3, 2.8
  */
 export function LinkItem({ link, onEdit }: LinkItemProps) {
     const { setLinks, links } = useEditorStore();
@@ -54,12 +54,27 @@ export function LinkItem({ link, onEdit }: LinkItemProps) {
         const result = await deleteLink(link.id);
 
         if (result.success) {
+            // Refresh links from server to ensure data consistency
+            const linksResult = await getUserLinks();
+            if (linksResult.success) {
+                setLinks(linksResult.data);
+            }
             toast.success("Link deleted successfully");
         } else {
             // Revert on failure
             setLinks(previousLinks);
             toast.error(result.error);
         }
+    };
+
+    /**
+     * Handle edit button click
+     * Passes the complete link data to the parent for form pre-population
+     * 
+     * Requirements: 2.8
+     */
+    const handleEdit = () => {
+        onEdit(link);
     };
 
     return (
@@ -116,7 +131,7 @@ export function LinkItem({ link, onEdit }: LinkItemProps) {
                             </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => onEdit(link)}>
+                            <DropdownMenuItem onClick={handleEdit}>
                                 <Pencil className="mr-2 h-4 w-4" />
                                 Edit
                             </DropdownMenuItem>

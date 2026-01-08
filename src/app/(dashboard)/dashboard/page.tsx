@@ -7,6 +7,7 @@ import { Link2, Eye, Palette } from "lucide-react";
 import { LinkList } from "@/components/features/link-editor";
 import { LivePreview } from "@/components/features/preview";
 import { useEditorStore } from "@/stores/editor-store";
+import { getUserLinks } from "@/actions/link-actions";
 
 /**
  * Dashboard Page
@@ -22,6 +23,22 @@ export default function DashboardPage() {
     // Get user info from session
     const userName = session?.user?.name;
     const userAvatar = session?.user?.image;
+
+    /**
+     * Load links from server on initial mount
+     * This ensures the store is populated with the latest data from the database
+     * 
+     * Requirements: 2.2
+     */
+    useEffect(() => {
+        async function loadLinks() {
+            const result = await getUserLinks();
+            if (result.success) {
+                setLinks(result.data);
+            }
+        }
+        loadLinks();
+    }, [setLinks]);
 
     return (
         <div className="flex h-full gap-6">
