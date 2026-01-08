@@ -3,9 +3,16 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "./db";
 
+// 7 days in seconds
+const SEVEN_DAYS_SECONDS = 7 * 24 * 60 * 60;
+// 1 day in seconds (default session for non-remember-me)
+const ONE_DAY_SECONDS = 24 * 60 * 60;
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   session: {
     strategy: "jwt",
+    // Default max age - will be overridden by client-side logic
+    maxAge: ONE_DAY_SECONDS,
   },
   pages: {
     signIn: "/login",

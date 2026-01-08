@@ -7,31 +7,14 @@ import { z } from "zod";
 import {
   updateProfileSchema,
   themeSchema,
+  registerSchema,
   type UpdateProfileInput,
   type ThemeType,
+  type RegisterInput,
 } from "@/lib/validations";
 
-// Validation schemas
-export const registerSchema = z.object({
-  email: z.string().email("Invalid email format"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-  username: z
-    .string()
-    .min(3, "Username must be at least 3 characters")
-    .max(30, "Username too long")
-    .regex(
-      /^[a-zA-Z0-9_-]+$/,
-      "Username can only contain letters, numbers, underscores, and hyphens"
-    ),
-});
-
-export type RegisterInput = z.infer<typeof registerSchema>;
-
-export type ActionResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string };
-
-export interface User {
+// User type for return values
+interface User {
   id: string;
   email: string;
   username: string;
@@ -42,6 +25,11 @@ export interface User {
   createdAt: Date;
   updatedAt: Date;
 }
+
+// Action result type
+type ActionResult<T> =
+  | { success: true; data: T }
+  | { success: false; error: string };
 
 /**
  * Register a new user with email, password, and username
