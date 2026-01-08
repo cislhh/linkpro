@@ -36,6 +36,80 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+// ============================================
+// Page Module validation schemas
+// ============================================
+
+// Module type enum
+export const moduleTypeSchema = z.enum(['links', 'bio', 'skills', 'projects']);
+
+// Links module data schema
+export const linksModuleDataSchema = z.object({
+  type: z.literal('links'),
+  linkIds: z.array(z.string()),
+});
+
+// Bio module data schema
+export const bioModuleDataSchema = z.object({
+  type: z.literal('bio'),
+  name: z.string().max(100, 'Name too long'),
+  bio: z.string().max(500, 'Bio too long'),
+  avatar: z.string().url('Invalid avatar URL').nullable().optional(),
+});
+
+// Skills module data schema
+export const skillsModuleDataSchema = z.object({
+  type: z.literal('skills'),
+  skills: z.array(z.string().max(50, 'Skill name too long')).max(50, 'Too many skills'),
+});
+
+// Project schema
+export const projectSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, 'Project name is required').max(100, 'Project name too long'),
+  description: z.string().max(500, 'Description too long'),
+  url: z.string().url('Invalid URL').nullable().optional(),
+  imageUrl: z.string().url('Invalid image URL').nullable().optional(),
+  tags: z.array(z.string().max(30, 'Tag too long')).max(10, 'Too many tags'),
+});
+
+// Projects module data schema
+export const projectsModuleDataSchema = z.object({
+  type: z.literal('projects'),
+  projects: z.array(projectSchema).max(20, 'Too many projects'),
+});
+
+// Union of all module data schemas
+export const moduleDataSchema = z.discriminatedUnion('type', [
+  linksModuleDataSchema,
+  bioModuleDataSchema,
+  skillsModuleDataSchema,
+  projectsModuleDataSchema,
+]);
+
+// Create module schema
+export const createModuleSchema = z.object({
+  type: moduleTypeSchema,
+  title: z.string().max(100, 'Title too long').optional(),
+  data: moduleDataSchema,
+  order: z.number().int().min(0).default(0),
+  gridX: z.number().int().min(0).default(0),
+  gridY: z.number().int().min(0).default(0),
+  gridW: z.number().int().min(1).default(1),
+  gridH: z.number().int().min(1).default(1),
+});
+
+// Update module schema (partial)
+export const updateModuleSchema = z.object({
+  title: z.string().max(100, 'Title too long').optional(),
+  data: moduleDataSchema.optional(),
+  order: z.number().int().min(0).optional(),
+  gridX: z.number().int().min(0).optional(),
+  gridY: z.number().int().min(0).optional(),
+  gridW: z.number().int().min(1).optional(),
+  gridH: z.number().int().min(1).optional(),
+});
+
 // Inferred types from schemas
 export type CreateLinkInput = z.infer<typeof createLinkSchema>;
 export type UpdateLinkInput = z.infer<typeof updateLinkSchema>;
@@ -43,3 +117,6 @@ export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type ThemeType = z.infer<typeof themeSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type ModuleTypeInput = z.infer<typeof moduleTypeSchema>;
+export type CreateModuleInput = z.infer<typeof createModuleSchema>;
+export type UpdateModuleInput = z.infer<typeof updateModuleSchema>;

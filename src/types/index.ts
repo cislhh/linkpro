@@ -7,6 +7,9 @@ export type {
   UpdateProfileInput,
   RegisterInput,
   LoginInput,
+  ModuleTypeInput,
+  CreateModuleInput,
+  UpdateModuleInput,
 } from '@/lib/validations';
 
 // Theme type - matches Zod schema
