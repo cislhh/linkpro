@@ -34,7 +34,6 @@ export function LivePreview({
     deviceMode = "mobile",
 }: LivePreviewProps) {
     const { links, theme } = useEditorStore();
-
     // Sort links by order and filter active ones
     const activeLinks = [...links]
         .filter((link) => link.isActive)
@@ -98,7 +97,6 @@ function ThemeRenderer({
 }: ThemeRendererProps) {
     // Theme-specific background styles
     const themeStyles = getThemeStyles(theme);
-
     return (
         <div
             className={cn(
@@ -210,15 +208,14 @@ function getThemeStyles(theme: ThemeType) {
     switch (theme) {
         case "aurora":
             return {
-                background:
-                    "bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 animate-gradient-slow",
+                background: "bg-slate-950",
                 text: "text-white",
-                avatar: "bg-white/20 backdrop-blur-sm ring-2 ring-white/30",
+                avatar: "bg-white/10 backdrop-blur-sm ring-2 ring-white/20",
                 avatarIcon: "text-white",
                 button:
-                    "bg-white/20 backdrop-blur-sm text-white border border-white/30 hover:bg-white/30",
-                buttonHover: "hover:scale-[1.02] hover:shadow-lg",
-                emptyState: "border-white/30",
+                    "bg-white/10 backdrop-blur-md text-white border border-white/20 hover:bg-white/20",
+                buttonHover: "hover:scale-[1.02]",
+                emptyState: "border-white/20",
             };
         case "cyber":
             return {
@@ -235,16 +232,14 @@ function getThemeStyles(theme: ThemeType) {
         case "glass":
             return {
                 background:
-                    "bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900",
-                text: "text-slate-800 dark:text-slate-100",
-                avatar:
-                    "bg-white/50 dark:bg-white/10 backdrop-blur-md ring-1 ring-slate-200 dark:ring-slate-700",
-                avatarIcon: "text-slate-600 dark:text-slate-300",
+                    "bg-gradient-to-br from-violet-600 via-purple-600 to-pink-500",
+                text: "text-white",
+                avatar: "bg-white/10 backdrop-blur-xl ring-4 ring-white/30",
+                avatarIcon: "text-white",
                 button:
-                    "bg-white/60 dark:bg-white/10 backdrop-blur-md text-slate-800 dark:text-slate-100 border border-slate-200/50 dark:border-slate-700/50 shadow-sm",
-                buttonHover:
-                    "hover:bg-white/80 dark:hover:bg-white/20 hover:shadow-md hover:-translate-y-0.5",
-                emptyState: "border-slate-300 dark:border-slate-700",
+                    "bg-white/10 backdrop-blur-xl text-white border border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.1)]",
+                buttonHover: "hover:bg-white/20 hover:scale-[1.02]",
+                emptyState: "border-white/20",
             };
         default:
             return {
