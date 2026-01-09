@@ -240,3 +240,101 @@ export async function deleteModule(id: string): Promise<ActionResult<void>> {
     return { success: false, error: "Failed to delete module" };
   }
 }
+
+
+// Layout item type for saveLayout action
+interface LayoutItemInput {
+  id: string;
+  gridX: number;
+  gridY: number;
+  gridW: number;
+  gridH: number;
+}
+
+// Zod schema for layout item validation
+const layoutItemSchema = z.object({
+  id: z.string().min(1, "Module ID is required"),
+  gridX: z.number().int().min(0, "Grid X must be non-negative"),
+  gridY: z.number().int().min(0, "Grid Y must be non-negative"),
+  gridW: z.number().int().min(1, "Grid width must be at least 1"),
+  gridH: z.number().int().min(1, "Grid height must be at least 1"),
+});
+
+const saveLayoutSchema = z.array(layoutItemSchema);
+
+/**
+ * Save layout positions for multiple modules in a single transaction
+ * 
+ * - Validates input using Zod schema
+ * - Checks user authentication
+ * - Verifies all modules belong to the user
+ * - Batch updates all module positions in a transaction
+ * 
+ * Requirements: 12.4
+ */
+export async function saveLayout(
+  layoutItems: LayoutItemInput[]
+): Promise<ActionResult<PageModule[]>> {
+  try {
+    // 1. Validate input using Zod schema
+    const validated = saveLayoutSchema.parse(layoutItems);
+
+    // 2. Check authentication
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Authentication required" };
+    }
+
+    // 3. Get all module IDs from the input
+    const moduleIds = validated.map((item) => item.id);
+
+    // 4. Verify all modules exist and belong to the user
+    const existingModules = await prisma.pageModule.findMany({
+      where: {
+        id: { in: moduleIds },
+        userId: session.user.id,
+      },
+      select: { id: true },
+    });
+
+    const existingIds = new Set(existingModules.map((m) => m.id));
+    const missingIds = moduleIds.filter((id) => !existingIds.has(id));
+
+    if (missingIds.length > 0) {
+      return {
+        success: false,
+        error: `Modules not found or not authorized: ${missingIds.join(", ")}`,
+      };
+    }
+
+    // 5. Batch update all modules in a transaction
+    const updatePromises = validated.map((item) =>
+      prisma.pageModule.update({
+        where: { id: item.id },
+        data: {
+          gridX: item.gridX,
+          gridY: item.gridY,
+          gridW: item.gridW,
+          gridH: item.gridH,
+        },
+      })
+    );
+
+    const updatedModules = await prisma.$transaction(updatePromises);
+
+    // 6. Transform to PageModule type
+    const typedModules: PageModule[] = updatedModules.map((module) => ({
+      ...module,
+      type: module.type as PageModule["type"],
+      data: module.data as unknown as ModuleData,
+    }));
+
+    return { success: true, data: typedModules };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { success: false, error: error.issues[0]?.message ?? "Validation failed" };
+    }
+    console.error("saveLayout error:", error);
+    return { success: false, error: "Failed to save layout" };
+  }
+}

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { PageModule, LayoutItem, LayoutEditorState } from '@/types';
-import { updateModule } from '@/actions/module-actions';
+import { saveLayout as saveLayoutAction } from '@/actions/module-actions';
 
 /**
  * Layout Editor Store - Zustand store for managing the layout editor state
@@ -23,9 +23,11 @@ export const useLayoutStore = create<LayoutEditorState>((set, get) => ({
   /**
    * Set the modules array (used for initial load from server)
    * Also generates the layout array from module grid positions
+   * 
+   * Requirements: 12.5 - Layout loading restores saved positions
    */
   setModules: (modules: PageModule[]) => {
-    // Generate layout items from modules
+    // Generate layout items from modules, restoring saved grid positions
     const layout: LayoutItem[] = modules.map((module) => ({
       i: module.id,
       x: module.gridX,
@@ -48,8 +50,10 @@ export const useLayoutStore = create<LayoutEditorState>((set, get) => ({
   },
 
   /**
-   * Save the current layout to the database
-   * Updates each module's grid position based on the layout array
+   * Save the current layout to the database using batch update
+   * Uses the saveLayout Server Action for efficient transaction-based updates
+   * 
+   * Requirements: 12.4 - Persist position and size data for all modules
    */
   saveLayout: async () => {
     const { modules, layout } = get();
@@ -57,44 +61,65 @@ export const useLayoutStore = create<LayoutEditorState>((set, get) => ({
     // Create a map of layout items by module ID for quick lookup
     const layoutMap = new Map(layout.map((item) => [item.i, item]));
 
-    // Update each module's grid position in the database
-    const updatePromises = modules.map(async (module) => {
-      const layoutItem = layoutMap.get(module.id);
-      if (!layoutItem) return;
+    // Build layout items array for batch update
+    // Only include modules that have changed
+    const layoutItems = modules
+      .map((module) => {
+        const layoutItem = layoutMap.get(module.id);
+        if (!layoutItem) return null;
 
-      // Only update if position/size has changed
-      if (
-        module.gridX !== layoutItem.x ||
-        module.gridY !== layoutItem.y ||
-        module.gridW !== layoutItem.w ||
-        module.gridH !== layoutItem.h
-      ) {
-        await updateModule(module.id, {
+        // Check if position/size has changed
+        if (
+          module.gridX === layoutItem.x &&
+          module.gridY === layoutItem.y &&
+          module.gridW === layoutItem.w &&
+          module.gridH === layoutItem.h
+        ) {
+          return null; // No change, skip
+        }
+
+        return {
+          id: module.id,
           gridX: layoutItem.x,
           gridY: layoutItem.y,
           gridW: layoutItem.w,
           gridH: layoutItem.h,
-        });
-      }
-    });
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
 
-    await Promise.all(updatePromises);
+    // If no changes, skip the server call
+    if (layoutItems.length === 0) {
+      return;
+    }
 
-    // Update local modules with new grid positions
-    const updatedModules = modules.map((module) => {
-      const layoutItem = layoutMap.get(module.id);
-      if (!layoutItem) return module;
+    // Call the batch saveLayout Server Action
+    const result = await saveLayoutAction(layoutItems);
 
-      return {
-        ...module,
-        gridX: layoutItem.x,
-        gridY: layoutItem.y,
-        gridW: layoutItem.w,
-        gridH: layoutItem.h,
-      };
-    });
+    if (result.success) {
+      // Update local modules with new grid positions from server response
+      const updatedModulesMap = new Map(result.data.map((m) => [m.id, m]));
+      
+      const updatedModules = modules.map((module) => {
+        const updated = updatedModulesMap.get(module.id);
+        if (updated) {
+          return {
+            ...module,
+            gridX: updated.gridX,
+            gridY: updated.gridY,
+            gridW: updated.gridW,
+            gridH: updated.gridH,
+          };
+        }
+        return module;
+      });
 
-    set({ modules: updatedModules });
+      set({ modules: updatedModules });
+    } else {
+      // Log error but don't throw - let the UI handle error display
+      console.error("Failed to save layout:", result.error);
+      throw new Error(result.error);
+    }
   },
 
   /**
