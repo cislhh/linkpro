@@ -1,122 +1,121 @@
 import { create } from 'zustand';
-import type { PageModule, LayoutItem, LayoutEditorState } from '@/types';
-import { saveLayout as saveLayoutAction } from '@/actions/module-actions';
+import type { PageModule, LayoutItem, LayoutEditorState, DeviceMode } from '@/types';
+import { saveDeviceLayout, getDeviceLayouts } from '@/actions/module-actions';
+import { 
+  generateDefaultLayout,
+  validateLayout,
+  isCustomLayout,
+  getDefaultLayoutForNewModule,
+} from '@/lib/layout-templates';
 
 /**
  * Layout Editor Store - Zustand store for managing the layout editor state
  * 
  * This store manages:
  * - modules: Array of user's page modules
- * - layout: Array of layout items for react-grid-layout
+ * - layout: Current active layout (mobile-only)
+ * - mobileLayout: Layout configuration for mobile view
+ * - deviceMode: Current device mode (always mobile)
  * - isEditing: Whether the layout editor is in edit mode
  * 
  * Requirements: 12.1 - Layout Editor
+ * Note: Desktop mode has been removed - mobile-only implementation
  */
 export const useLayoutStore = create<LayoutEditorState>((set, get) => ({
   // State
   modules: [],
   layout: [],
-  isEditing: false,
+  deviceMode: 'mobile', // Always mobile
+  isEditing: true, // Default to editing mode (Requirements: 23.1)
+  mobileLayout: [],
+  desktopLayout: [], // Kept for type compatibility but not used
 
   // Actions
 
   /**
    * Set the modules array (used for initial load from server)
-   * Also generates the layout array from module grid positions
+   * Generates layout for mobile from module grid positions
+   * Uses default templates for new users without custom layouts
    * 
    * Requirements: 12.5 - Layout loading restores saved positions
+   * Note: Desktop layout generation removed - mobile-only implementation
    */
-  setModules: (modules: PageModule[]) => {
-    // Generate layout items from modules, restoring saved grid positions
-    const layout: LayoutItem[] = modules.map((module) => ({
-      i: module.id,
-      x: module.gridX,
-      y: module.gridY,
-      w: module.gridW,
-      h: module.gridH,
-      minW: 1,
-      minH: 1,
-    }));
+  setModules: async (modules: PageModule[]) => {
+    // Try to load saved device layouts from user profile
+    const layoutsResult = await getDeviceLayouts();
+    
+    let mobileLayout: LayoutItem[];
 
-    set({ modules, layout });
+    if (layoutsResult.success && layoutsResult.data.mobileLayout) {
+      // Use saved mobile layout from user profile
+      mobileLayout = layoutsResult.data.mobileLayout as LayoutItem[] || [];
+      
+      // Ensure all modules have layout items
+      const mobileIds = new Set(mobileLayout.map(l => l.i));
+      
+      // Add missing modules to layout
+      modules.forEach(module => {
+        if (!mobileIds.has(module.id)) {
+          const defaultLayout = getDefaultLayoutForNewModule(module.id, module.type, 'mobile', mobileLayout);
+          mobileLayout.push(defaultLayout);
+        }
+      });
+      
+      // Remove layout items for deleted modules
+      const moduleIds = new Set(modules.map(m => m.id));
+      mobileLayout = mobileLayout.filter(l => moduleIds.has(l.i));
+    } else {
+      // Generate default layout for new users
+      const moduleData = modules.map((m) => ({ id: m.id, type: m.type }));
+      mobileLayout = generateDefaultLayout(moduleData, 'mobile');
+    }
+
+    // Validate layout to ensure it fits within grid constraints
+    mobileLayout = validateLayout(mobileLayout, 'mobile');
+
+    set({ 
+      modules, 
+      layout: mobileLayout,
+      mobileLayout,
+      desktopLayout: [], // Not used but kept for type compatibility
+    });
   },
 
   /**
    * Update the layout array (called when user drags/resizes modules)
-   * This updates the local state for immediate visual feedback
+   * Updates the mobile layout only
+   * 
+   * Note: Desktop layout removed - mobile-only implementation
    */
   updateLayout: (layout: LayoutItem[]) => {
-    set({ layout });
+    set({ layout, mobileLayout: layout });
   },
 
   /**
-   * Save the current layout to the database using batch update
-   * Uses the saveLayout Server Action for efficient transaction-based updates
+   * Set the device mode (kept for API compatibility but always uses mobile)
+   * 
+   * Note: Desktop mode removed - always uses mobile layout
+   */
+  setDeviceMode: (mode: DeviceMode) => {
+    // Always use mobile layout regardless of mode parameter
+    const { mobileLayout } = get();
+    set({ deviceMode: 'mobile', layout: mobileLayout });
+  },
+
+  /**
+   * Save the current layout to the user profile
+   * Saves only the mobile layout
    * 
    * Requirements: 12.4 - Persist position and size data for all modules
+   * Note: Desktop layout saving removed - mobile-only implementation
    */
   saveLayout: async () => {
-    const { modules, layout } = get();
+    const { mobileLayout } = get();
 
-    // Create a map of layout items by module ID for quick lookup
-    const layoutMap = new Map(layout.map((item) => [item.i, item]));
+    // Call the device-specific saveLayout Server Action (always mobile)
+    const result = await saveDeviceLayout('mobile', mobileLayout);
 
-    // Build layout items array for batch update
-    // Only include modules that have changed
-    const layoutItems = modules
-      .map((module) => {
-        const layoutItem = layoutMap.get(module.id);
-        if (!layoutItem) return null;
-
-        // Check if position/size has changed
-        if (
-          module.gridX === layoutItem.x &&
-          module.gridY === layoutItem.y &&
-          module.gridW === layoutItem.w &&
-          module.gridH === layoutItem.h
-        ) {
-          return null; // No change, skip
-        }
-
-        return {
-          id: module.id,
-          gridX: layoutItem.x,
-          gridY: layoutItem.y,
-          gridW: layoutItem.w,
-          gridH: layoutItem.h,
-        };
-      })
-      .filter((item): item is NonNullable<typeof item> => item !== null);
-
-    // If no changes, skip the server call
-    if (layoutItems.length === 0) {
-      return;
-    }
-
-    // Call the batch saveLayout Server Action
-    const result = await saveLayoutAction(layoutItems);
-
-    if (result.success) {
-      // Update local modules with new grid positions from server response
-      const updatedModulesMap = new Map(result.data.map((m) => [m.id, m]));
-      
-      const updatedModules = modules.map((module) => {
-        const updated = updatedModulesMap.get(module.id);
-        if (updated) {
-          return {
-            ...module,
-            gridX: updated.gridX,
-            gridY: updated.gridY,
-            gridW: updated.gridW,
-            gridH: updated.gridH,
-          };
-        }
-        return module;
-      });
-
-      set({ modules: updatedModules });
-    } else {
-      // Log error but don't throw - let the UI handle error display
+    if (!result.success) {
       console.error("Failed to save layout:", result.error);
       throw new Error(result.error);
     }
@@ -134,6 +133,9 @@ export const useLayoutStore = create<LayoutEditorState>((set, get) => ({
 export const useModules = () => useLayoutStore((state) => state.modules);
 export const useLayout = () => useLayoutStore((state) => state.layout);
 export const useIsEditing = () => useLayoutStore((state) => state.isEditing);
+export const useDeviceMode = () => useLayoutStore((state) => state.deviceMode);
+export const useMobileLayout = () => useLayoutStore((state) => state.mobileLayout);
+export const useDesktopLayout = () => useLayoutStore((state) => state.desktopLayout);
 
 // Action hooks
 export const useLayoutActions = () => useLayoutStore((state) => ({
@@ -141,4 +143,13 @@ export const useLayoutActions = () => useLayoutStore((state) => ({
   updateLayout: state.updateLayout,
   saveLayout: state.saveLayout,
   toggleEditing: state.toggleEditing,
+  setDeviceMode: state.setDeviceMode,
 }));
+
+// Re-export layout template utilities for convenience
+export { 
+  generateDefaultLayout, 
+  getDefaultLayoutForNewModule,
+  validateLayout,
+  isCustomLayout,
+} from '@/lib/layout-templates';

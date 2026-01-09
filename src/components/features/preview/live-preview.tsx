@@ -23,6 +23,7 @@ interface LivePreviewProps {
  * 
  * Renders a real-time preview of the user's public page.
  * Reads state from Zustand store and updates within 200ms of any change.
+ * Mobile-only implementation.
  * 
  * Requirements: 4.1, 4.2, 4.3, 4.4
  */
@@ -42,25 +43,17 @@ export function LivePreview({
     return (
         <div
             className={cn(
-                "relative overflow-hidden rounded-2xl border bg-background shadow-lg",
-                deviceMode === "mobile" ? "w-[375px]" : "w-full max-w-2xl",
+                "relative overflow-hidden rounded-2xl border bg-background shadow-lg w-[375px]",
                 className
             )}
         >
-            {/* Phone Frame (mobile mode only) */}
-            {deviceMode === "mobile" && (
-                <div className="absolute inset-x-0 top-0 z-10 flex h-6 items-center justify-center bg-black/5">
-                    <div className="h-1.5 w-20 rounded-full bg-black/20" />
-                </div>
-            )}
+            {/* Phone Frame (mobile mode) */}
+            <div className="absolute inset-x-0 top-0 z-10 flex h-6 items-center justify-center bg-black/5">
+                <div className="h-1.5 w-20 rounded-full bg-black/20" />
+            </div>
 
             {/* Preview Content */}
-            <div
-                className={cn(
-                    "min-h-[600px] overflow-auto",
-                    deviceMode === "mobile" && "pt-6"
-                )}
-            >
+            <div className="min-h-[600px] overflow-auto pt-6">
                 <ThemeRenderer
                     theme={theme}
                     links={activeLinks}

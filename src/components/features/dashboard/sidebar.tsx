@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { signOut, useSession } from "next-auth/react";
+import { PublishButton, PublishStatus } from "@/components/features/publish";
 
 interface SidebarProps {
     collapsed: boolean;
@@ -151,6 +152,16 @@ export function DashboardSidebar({ collapsed, onToggleCollapse }: SidebarProps) 
                         <ExternalLink className="h-5 w-5" />
                         {!collapsed && <span>查看公开页面</span>}
                     </Link>
+                </div>
+            )}
+
+            {/* Publish Section */}
+            {!collapsed && (
+                <div className="border-t border-sidebar-border p-3">
+                    <div className="mb-2">
+                        <PublishStatus />
+                    </div>
+                    <PublishButton />
                 </div>
             )}
 

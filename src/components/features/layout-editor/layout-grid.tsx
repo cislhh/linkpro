@@ -26,6 +26,7 @@ interface LayoutGridProps {
  * 
  * A grid-based layout editor using react-grid-layout.
  * Supports drag-and-drop positioning and resizing of modules.
+ * Mobile-only implementation with 2-column grid.
  * 
  * Requirements: 12.1, 12.2
  */
@@ -33,8 +34,8 @@ export function LayoutGrid({
     modules,
     links,
     className,
-    cols = 12,
-    rowHeight = 100,
+    cols = 2, // Mobile-only: 2 columns
+    rowHeight = 80, // Mobile row height
     isEditing = false,
     onLayoutChange,
 }: LayoutGridProps) {
@@ -42,12 +43,15 @@ export function LayoutGrid({
     const [mounted, setMounted] = useState(false);
 
     // Use container width hook for responsive behavior
-    const { width, containerRef } = useContainerWidth({ initialWidth: 1200 });
+    const { width, containerRef } = useContainerWidth({ initialWidth: 375 });
 
     // Ensure component is mounted before rendering grid (SSR safety)
     useEffect(() => {
         setMounted(true);
     }, []);
+
+    // Mobile-only row height
+    const effectiveRowHeight = rowHeight;
 
     // Convert LayoutItem[] to react-grid-layout format
     const gridLayout = layout.map((item) => ({
@@ -56,7 +60,7 @@ export function LayoutGrid({
         y: item.y,
         w: item.w,
         h: item.h,
-        minW: item.minW || 2,
+        minW: item.minW || 1,
         minH: item.minH || 2,
     }));
 
@@ -101,9 +105,9 @@ export function LayoutGrid({
         );
     }
 
-    // Breakpoint configuration
-    const breakpoints = { lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 };
-    const colsConfig = { lg: cols, md: 10, sm: 6, xs: 4, xxs: 2 };
+    // Mobile-only breakpoint configuration
+    const breakpoints = { lg: 480, md: 480, sm: 480, xs: 480, xxs: 0 };
+    const colsConfig = { lg: cols, md: cols, sm: cols, xs: cols, xxs: cols };
 
     // Grid props - using any to bypass outdated type definitions
     // The @types/react-grid-layout package is outdated for v2.x
@@ -113,7 +117,7 @@ export function LayoutGrid({
         layouts: { lg: gridLayout, md: gridLayout, sm: gridLayout, xs: gridLayout, xxs: gridLayout },
         breakpoints,
         cols: colsConfig,
-        rowHeight,
+        rowHeight: effectiveRowHeight,
         width,
         onLayoutChange: handleLayoutChange,
         isDraggable: isEditing,
@@ -128,7 +132,13 @@ export function LayoutGrid({
     return (
         <div
             ref={containerRef as React.RefObject<HTMLDivElement>}
-            className={cn("layout-grid-container", className)}
+            className={cn(
+                "layout-grid-container max-w-[375px] mx-auto overflow-hidden",
+                className
+            )}
+            style={{
+                contain: 'layout',
+            }}
         >
             <ResponsiveGridLayout {...gridProps}>
                 {modules.map((module) => (

@@ -262,6 +262,9 @@ const layoutItemSchema = z.object({
 
 const saveLayoutSchema = z.array(layoutItemSchema);
 
+// Device mode type for layout saving
+type DeviceMode = 'mobile' | 'desktop';
+
 /**
  * Save layout positions for multiple modules in a single transaction
  * 
@@ -336,5 +339,116 @@ export async function saveLayout(
     }
     console.error("saveLayout error:", error);
     return { success: false, error: "Failed to save layout" };
+  }
+}
+
+
+// Layout data structure for device-specific layouts
+interface LayoutData {
+  i: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  minW?: number;
+  minH?: number;
+}
+
+const layoutDataSchema = z.object({
+  i: z.string(),
+  x: z.number().int().min(0),
+  y: z.number().int().min(0),
+  w: z.number().int().min(1),
+  h: z.number().int().min(1),
+  minW: z.number().int().min(1).optional(),
+  minH: z.number().int().min(1).optional(),
+});
+
+const deviceLayoutSchema = z.array(layoutDataSchema);
+
+/**
+ * Save device-specific layout to user profile
+ * 
+ * - Validates input using Zod schema
+ * - Checks user authentication
+ * - Saves layout to mobileLayout or desktopLayout field based on device mode
+ * 
+ * Requirements: 21.1, 21.2, 21.3
+ */
+export async function saveDeviceLayout(
+  deviceMode: DeviceMode,
+  layout: LayoutData[]
+): Promise<ActionResult<void>> {
+  try {
+    // 1. Validate input
+    const validatedLayout = deviceLayoutSchema.parse(layout);
+
+    // 2. Check authentication
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Authentication required" };
+    }
+
+    // 3. Determine which field to update based on device mode
+    const updateData = deviceMode === 'mobile'
+      ? { mobileLayout: validatedLayout }
+      : { desktopLayout: validatedLayout };
+
+    // 4. Update user's layout field
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: updateData,
+    });
+
+    return { success: true, data: undefined };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { success: false, error: error.issues[0]?.message ?? "Validation failed" };
+    }
+    console.error("saveDeviceLayout error:", error);
+    return { success: false, error: "Failed to save device layout" };
+  }
+}
+
+
+/**
+ * Get device-specific layouts from user profile
+ * 
+ * - Checks user authentication
+ * - Returns both mobile and desktop layouts
+ * 
+ * Requirements: 21.4
+ */
+export async function getDeviceLayouts(): Promise<ActionResult<{
+  mobileLayout: LayoutData[] | null;
+  desktopLayout: LayoutData[] | null;
+}>> {
+  try {
+    // 1. Check authentication
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Authentication required" };
+    }
+
+    // 2. Get user's layout fields
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { mobileLayout: true, desktopLayout: true },
+    });
+
+    if (!user) {
+      return { success: false, error: "User not found" };
+    }
+
+    return {
+      success: true,
+      data: {
+        mobileLayout: user.mobileLayout as LayoutData[] | null,
+        desktopLayout: user.desktopLayout as LayoutData[] | null,
+      },
+    };
+  } catch (error) {
+    console.error("getDeviceLayouts error:", error);
+    return { success: false, error: "Failed to get device layouts" };
   }
 }

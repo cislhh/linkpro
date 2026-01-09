@@ -171,15 +171,29 @@ export interface LayoutItem {
   maxH?: number;
 }
 
+// Device mode for layout editor
+export type DeviceMode = 'mobile' | 'desktop';
+
+// Layout configuration for both device modes
+export interface DeviceLayouts {
+  mobile: LayoutItem[];
+  desktop: LayoutItem[];
+}
+
 // Layout editor state interface for Zustand store
 export interface LayoutEditorState {
   modules: PageModule[];
   layout: LayoutItem[];
+  deviceMode: DeviceMode;
   isEditing: boolean;
+  // Separate layouts for mobile and desktop
+  mobileLayout: LayoutItem[];
+  desktopLayout: LayoutItem[];
   
   // Actions
-  setModules: (modules: PageModule[]) => void;
+  setModules: (modules: PageModule[]) => Promise<void>;
   updateLayout: (layout: LayoutItem[]) => void;
   saveLayout: () => Promise<void>;
   toggleEditing: () => void;
+  setDeviceMode: (mode: DeviceMode) => void;
 }

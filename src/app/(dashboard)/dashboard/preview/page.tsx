@@ -1,26 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSession } from "next-auth/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, Smartphone, Monitor, RefreshCw } from "lucide-react";
+import { Eye, Smartphone, RefreshCw, LayoutGrid, Link as LinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { LivePreview } from "@/components/features/preview";
+import { LivePreview, LayoutPreview } from "@/components/features/preview";
 import { useEditorStore } from "@/stores/editor-store";
-import { cn } from "@/lib/utils";
 
-type DeviceMode = "mobile" | "desktop";
+type PreviewMode = "links" | "layout";
 
 /**
  * Preview Page
  * 
  * Displays a real-time preview of the user's public page.
- * Supports both mobile and desktop preview modes.
+ * Mobile-only mode - optimized for mobile devices.
+ * Supports both links-only view and full layout view.
  * 
  * Requirements: 4.1, 4.2, 4.3, 4.4
+ * Requirements: 16.1 - Display layout result in preview page
  */
 export default function PreviewPage() {
-    const [deviceMode, setDeviceMode] = useState<DeviceMode>("mobile");
+    const [previewMode, setPreviewMode] = useState<PreviewMode>("layout");
     const { data: session } = useSession();
     const { links, theme } = useEditorStore();
 
@@ -40,22 +41,27 @@ export default function PreviewPage() {
                     </p>
                 </div>
                 <div className="flex gap-2">
-                    <Button
-                        variant={deviceMode === "desktop" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setDeviceMode("desktop")}
-                    >
-                        <Monitor className="mr-2 h-4 w-4" />
-                        桌面端
-                    </Button>
-                    <Button
-                        variant={deviceMode === "mobile" ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => setDeviceMode("mobile")}
-                    >
-                        <Smartphone className="mr-2 h-4 w-4" />
-                        移动端
-                    </Button>
+                    {/* Preview Mode Toggle */}
+                    <div className="flex rounded-lg border p-1">
+                        <Button
+                            variant={previewMode === "layout" ? "default" : "ghost"}
+                            size="sm"
+                            onClick={() => setPreviewMode("layout")}
+                            className="h-8"
+                        >
+                            <LayoutGrid className="mr-2 h-4 w-4" />
+                            布局预览
+                        </Button>
+                        <Button
+                            variant={previewMode === "links" ? "default" : "ghost"}
+                            size="sm"
+                            onClick={() => setPreviewMode("links")}
+                            className="h-8"
+                        >
+                            <LinkIcon className="mr-2 h-4 w-4" />
+                            链接预览
+                        </Button>
+                    </div>
                 </div>
             </div>
 
@@ -92,18 +98,12 @@ export default function PreviewPage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">预览模式</CardTitle>
-                        {deviceMode === "mobile" ? (
-                            <Smartphone className="h-4 w-4 text-muted-foreground" />
-                        ) : (
-                            <Monitor className="h-4 w-4 text-muted-foreground" />
-                        )}
+                        <Smartphone className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">
-                            {deviceMode === "mobile" ? "移动端" : "桌面端"}
-                        </div>
+                        <div className="text-2xl font-bold">移动端</div>
                         <p className="text-xs text-muted-foreground">
-                            {deviceMode === "mobile" ? "375px 宽度" : "自适应宽度"}
+                            {previewMode === "layout" ? "布局预览" : "链接预览"} · 375px 宽度
                         </p>
                     </CardContent>
                 </Card>
@@ -117,22 +117,29 @@ export default function PreviewPage() {
                         <CardTitle>实时预览</CardTitle>
                     </div>
                     <CardDescription>
-                        这是访客看到的你的公开页面效果
+                        {previewMode === "layout"
+                            ? "这是访客看到的你的公开页面效果（包含自定义布局）"
+                            : "这是访客看到的你的链接列表效果"
+                        }
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div
-                        className={cn(
-                            "flex justify-center rounded-lg bg-muted/30 p-6",
-                            deviceMode === "desktop" && "overflow-x-auto"
+                    <div className="rounded-lg bg-muted/30 p-6 flex justify-center">
+                        {previewMode === "layout" ? (
+                            <LayoutPreview
+                                userName={userName}
+                                userBio={userBio}
+                                userAvatar={userAvatar}
+                                deviceMode="mobile"
+                            />
+                        ) : (
+                            <LivePreview
+                                userName={userName}
+                                userBio={userBio}
+                                userAvatar={userAvatar}
+                                deviceMode="mobile"
+                            />
                         )}
-                    >
-                        <LivePreview
-                            userName={userName}
-                            userBio={userBio}
-                            userAvatar={userAvatar}
-                            deviceMode={deviceMode}
-                        />
                     </div>
                 </CardContent>
             </Card>

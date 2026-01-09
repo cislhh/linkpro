@@ -18,39 +18,75 @@ interface PageProps {
     }>;
 }
 
+interface UserData {
+    id: string;
+    username: string;
+    name: string | null;
+    bio: string | null;
+    avatarUrl: string | null;
+    theme: string;
+    isPublished: boolean;
+    links: Array<{
+        id: string;
+        userId: string;
+        title: string;
+        url: string;
+        icon: string | null;
+        order: number;
+        isActive: boolean;
+        createdAt: Date;
+        updatedAt: Date;
+    }>;
+}
+
 /**
  * 获取用户数据（SSR）
  * 根据 username 查询用户和链接
  */
-async function getUserByUsername(username: string) {
-    const user = await prisma.user.findUnique({
-        where: { username },
-        select: {
-            id: true,
-            username: true,
-            name: true,
-            bio: true,
-            avatarUrl: true,
-            theme: true,
-            links: {
-                where: { isActive: true },
-                orderBy: { order: 'asc' },
-                select: {
-                    id: true,
-                    userId: true,
-                    title: true,
-                    url: true,
-                    icon: true,
-                    order: true,
-                    isActive: true,
-                    createdAt: true,
-                    updatedAt: true,
-                },
-            },
+async function getUserByUsername(username: string): Promise<UserData | null> {
+    // Use raw SQL to get user with publish status
+    const users = await prisma.$queryRaw<Array<{
+        id: string;
+        username: string;
+        name: string | null;
+        bio: string | null;
+        avatarUrl: string | null;
+        theme: string;
+        isPublished: boolean;
+    }>>`
+        SELECT id, username, name, bio, "avatarUrl", theme, "isPublished"
+        FROM "User"
+        WHERE username = ${username}
+    `;
+
+    if (!users || users.length === 0) {
+        return null;
+    }
+
+    const userData = users[0];
+    if (!userData) {
+        return null;
+    }
+
+    // Get user's active links
+    const links = await prisma.link.findMany({
+        where: {
+            userId: userData.id,
+            isActive: true
         },
+        orderBy: { order: 'asc' },
     });
 
-    return user;
+    return {
+        id: userData.id,
+        username: userData.username,
+        name: userData.name,
+        bio: userData.bio,
+        avatarUrl: userData.avatarUrl,
+        theme: userData.theme,
+        isPublished: userData.isPublished,
+        links,
+    };
 }
 
 /**
@@ -105,8 +141,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
  * 公开页面组件
  * 
  * - 使用 SSR 获取用户数据
+ * - 检查页面是否已发布
  * - 根据 theme 字段动态渲染对应主题组件
  * - 处理不存在的用户名返回 404
+ * 
+ * Requirements: 5.1, 5.3, 5.5, 24.7
  */
 export default async function PublicPage({ params }: PageProps) {
     const { username } = await params;
@@ -114,6 +153,11 @@ export default async function PublicPage({ params }: PageProps) {
 
     // 处理不存在的用户名 - Requirements: 5.5
     if (!user) {
+        notFound();
+    }
+
+    // 检查页面是否已发布 - Requirements: 24.7
+    if (!user.isPublished) {
         notFound();
     }
 

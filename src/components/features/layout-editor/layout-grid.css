@@ -3,11 +3,20 @@
 
 .layout-grid-container {
     position: relative;
+    width: 100%;
+}
+
+/* Mobile layout container - fixed width with overflow hidden */
+.layout-grid-container.mobile-layout {
+    max-width: 375px;
+    overflow: hidden;
+    contain: layout;
 }
 
 /* Grid item styles */
 .layout-item {
     transition: box-shadow 0.2s ease;
+    overflow: hidden;
 }
 
 .layout-item:hover {
