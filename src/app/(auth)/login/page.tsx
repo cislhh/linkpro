@@ -73,6 +73,10 @@ export default function LoginPage() {
             // Set login expiry if remember me is checked
             setLoginExpiry();
 
+            // Set session marker in sessionStorage to track browser session
+            // This is used by AuthGuard to detect if browser was closed
+            sessionStorage.setItem("linkpro-session-active", "true");
+
             toast.success("登录成功！");
             router.push(callbackUrl);
             router.refresh();
