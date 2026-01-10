@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LayoutGrid, Eye, Palette } from "lucide-react";
-import { ModuleSelector, ModuleList } from "@/components/features/modules";
+import { ModuleSelector, ModuleList, ModuleEditDialog } from "@/components/features/modules";
 import { LivePreview } from "@/components/features/preview";
 import { useEditorStore } from "@/stores/editor-store";
+import { useLayoutStore } from "@/stores/layout-store";
 import { getUserLinks } from "@/actions/link-actions";
 import { getModules } from "@/actions/module-actions";
 import type { PageModule } from "@/types";
@@ -22,12 +23,39 @@ import type { PageModule } from "@/types";
 export default function DashboardPage() {
     const { data: session } = useSession();
     const { links, theme, setLinks } = useEditorStore();
+    const { layout: mobileLayout } = useLayoutStore();
     const [modules, setModules] = useState<PageModule[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+
+    // Edit dialog state
+    const [editingModule, setEditingModule] = useState<PageModule | null>(null);
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
 
     // Get user info from session
     const userName = session?.user?.name;
     const userAvatar = session?.user?.image;
+
+    /**
+     * Sort modules by layout order (from layout editor)
+     * Modules are displayed in the same order as they appear in the layout editor
+     */
+    const sortedModules = useMemo(() => {
+        if (!mobileLayout || mobileLayout.length === 0) {
+            return modules;
+        }
+        // Create a map of module ID to layout Y position for sorting
+        const layoutOrder = new Map<string, number>();
+        mobileLayout.forEach((item) => {
+            layoutOrder.set(item.i, item.y);
+        });
+
+        // Sort modules by their Y position in the layout
+        return [...modules].sort((a, b) => {
+            const aY = layoutOrder.get(a.id) ?? Number.MAX_VALUE;
+            const bY = layoutOrder.get(b.id) ?? Number.MAX_VALUE;
+            return aY - bY;
+        });
+    }, [modules, mobileLayout]);
 
     /**
      * Load modules and links from server on initial mount
@@ -76,8 +104,15 @@ export default function DashboardPage() {
      * Handle module edit - placeholder for future implementation
      */
     const handleModuleEdit = (module: PageModule) => {
-        // TODO: Open edit dialog/form for the module
-        console.log("Edit module:", module);
+        setEditingModule(module);
+        setEditDialogOpen(true);
+    };
+
+    /**
+     * Handle module edit success - refresh module list
+     */
+    const handleModuleEditSuccess = () => {
+        loadData();
     };
 
     return (
@@ -145,12 +180,20 @@ export default function DashboardPage() {
                     </Card>
                 ) : (
                     <ModuleList
-                        modules={modules}
+                        modules={sortedModules}
                         onModuleDeleted={handleModuleDeleted}
                         onModuleEdit={handleModuleEdit}
                     />
                 )}
             </div>
+
+            {/* Module Edit Dialog */}
+            <ModuleEditDialog
+                module={editingModule}
+                open={editDialogOpen}
+                onOpenChange={setEditDialogOpen}
+                onSuccess={handleModuleEditSuccess}
+            />
 
             {/* Right Side - Live Preview */}
             <div className="hidden w-[420px] flex-shrink-0 lg:block">

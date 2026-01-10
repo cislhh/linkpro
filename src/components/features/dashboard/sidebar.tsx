@@ -13,7 +13,8 @@ import {
     User,
     ExternalLink,
     Grid3X3,
-    Link2
+    Link2,
+    UserCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,11 @@ const navItems: NavItem[] = [
         href: "/dashboard/layout-editor",
         label: "布局编辑",
         icon: <Grid3X3 className="h-5 w-5" />,
+    },
+    {
+        href: "/dashboard/profile",
+        label: "个人信息",
+        icon: <UserCircle className="h-5 w-5" />,
     },
     {
         href: "/dashboard/themes",

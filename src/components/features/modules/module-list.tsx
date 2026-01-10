@@ -10,7 +10,6 @@ import {
     Pencil,
     Trash2,
     Loader2,
-    GripVertical,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,6 +53,7 @@ function getModuleIcon(type: ModuleType) {
 
 /**
  * Get label for module type
+ * Matches the labels in module-selector.tsx for consistency
  */
 function getModuleLabel(type: ModuleType): string {
     switch (type) {
@@ -230,11 +230,6 @@ function ModuleItem({ module, onEdit, onDelete }: ModuleItemProps) {
             exit={{ opacity: 0, x: -20 }}
             className="group flex items-center gap-3 rounded-lg border bg-card p-4 transition-colors hover:bg-accent/50"
         >
-            {/* Drag Handle (for future drag-and-drop) */}
-            <div className="cursor-grab text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
-                <GripVertical className="h-5 w-5" />
-            </div>
-
             {/* Module Icon */}
             <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                 {getModuleIcon(module.type)}
