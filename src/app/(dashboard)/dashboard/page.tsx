@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { LayoutGrid, Eye, Palette } from "lucide-react";
 import { ModuleSelector, ModuleList, ModuleEditDialog } from "@/components/features/modules";
-import { LivePreview } from "@/components/features/preview";
+import { LayoutPreview } from "@/components/features/preview";
 import { useEditorStore } from "@/stores/editor-store";
 import { useLayoutStore } from "@/stores/layout-store";
 import { getUserLinks } from "@/actions/link-actions";
@@ -205,11 +205,11 @@ export default function DashboardPage() {
                                 <CardTitle className="text-base">实时预览</CardTitle>
                             </div>
                             <CardDescription className="text-xs">
-                                访客看到的页面效果
+                                访客看到的页面效果（包含布局编辑）
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="flex justify-center pb-6">
-                            <LivePreview
+                            <LayoutPreview
                                 userName={userName}
                                 userBio={null}
                                 userAvatar={userAvatar}
