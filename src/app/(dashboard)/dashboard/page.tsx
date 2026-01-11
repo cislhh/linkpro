@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { LayoutGrid, Eye, Palette } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { LayoutGrid, Eye, Palette, ExternalLink } from "lucide-react";
 import { ModuleSelector, ModuleList, ModuleEditDialog } from "@/components/features/modules";
-import { LayoutPreview } from "@/components/features/preview";
 import { useEditorStore } from "@/stores/editor-store";
 import { useLayoutStore } from "@/stores/layout-store";
 import { getUserLinks } from "@/actions/link-actions";
@@ -30,10 +30,6 @@ export default function DashboardPage() {
     // Edit dialog state
     const [editingModule, setEditingModule] = useState<PageModule | null>(null);
     const [editDialogOpen, setEditDialogOpen] = useState(false);
-
-    // Get user info from session
-    const userName = session?.user?.name;
-    const userAvatar = session?.user?.image;
 
     /**
      * Sort modules by layout order (from layout editor)
@@ -124,15 +120,26 @@ export default function DashboardPage() {
     };
 
     return (
-        <div className="flex h-full gap-6">
-            {/* Left Side - Module Management */}
-            <div className="flex-1 space-y-6 overflow-auto">
+        <div className="h-full">
+            {/* Header with Preview Button */}
+            <div className="flex items-start justify-between gap-6 mb-6">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">页面管理</h1>
                     <p className="text-muted-foreground">
                         管理你的页面模块和个人主页设置
                     </p>
                 </div>
+                <Button asChild variant="default" size="lg" className="gap-2 shrink-0">
+                    <a href="/dashboard/preview">
+                        <Eye className="h-4 w-4" />
+                        预览页面
+                        <ExternalLink className="h-3 w-3" />
+                    </a>
+                </Button>
+            </div>
+
+            {/* Module Management */}
+            <div className="space-y-6 overflow-auto">
 
                 {/* Stats Cards */}
                 <div className="grid gap-4 md:grid-cols-3">
@@ -202,32 +209,6 @@ export default function DashboardPage() {
                 onOpenChange={setEditDialogOpen}
                 onSuccess={handleModuleEditSuccess}
             />
-
-            {/* Right Side - Live Preview */}
-            <div className="hidden w-[420px] flex-shrink-0 lg:block">
-                <div className="sticky top-0">
-                    <Card className="h-fit">
-                        <CardHeader className="pb-3">
-                            <div className="flex items-center gap-2">
-                                <Eye className="h-4 w-4" />
-                                <CardTitle className="text-base">实时预览</CardTitle>
-                            </div>
-                            <CardDescription className="text-xs">
-                                访客看到的页面效果（包含布局编辑）
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex justify-center pb-6">
-                            <LayoutPreview
-                                userName={userName}
-                                userBio={null}
-                                userAvatar={userAvatar}
-                                deviceMode="mobile"
-                                className="scale-[0.85] origin-top"
-                            />
-                        </CardContent>
-                    </Card>
-                </div>
-            </div>
         </div>
     );
 }
