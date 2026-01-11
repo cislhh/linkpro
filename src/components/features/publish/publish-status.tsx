@@ -6,9 +6,9 @@ import { Loader2 } from "lucide-react";
 
 /**
  * PublishStatus Component
- * 
+ *
  * Displays the current publish status (draft/published) with timestamp.
- * 
+ *
  * Requirements: 24.4, 24.5
  */
 export function PublishStatus() {
@@ -19,17 +19,33 @@ export function PublishStatus() {
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
+        let isMounted = true;
+
         async function loadStatus() {
-            const result = await getPublishStatus();
-            if (result.success) {
-                setStatus({
-                    isPublished: result.data.isPublished,
-                    publishedAt: result.data.publishedAt ? new Date(result.data.publishedAt) : null,
-                });
+            try {
+                const result = await getPublishStatus();
+                if (isMounted) {
+                    if (result.success) {
+                        setStatus({
+                            isPublished: result.data.isPublished,
+                            publishedAt: result.data.publishedAt ? new Date(result.data.publishedAt) : null,
+                        });
+                    }
+                    // 即使失败也停止加载，避免一直卡在加载状态
+                    setIsLoading(false);
+                }
+            } catch (error) {
+                console.error("Failed to load publish status:", error);
+                if (isMounted) {
+                    setIsLoading(false);
+                }
             }
-            setIsLoading(false);
         }
         loadStatus();
+
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     if (isLoading) {

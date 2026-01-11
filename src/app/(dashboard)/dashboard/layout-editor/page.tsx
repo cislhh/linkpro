@@ -38,6 +38,8 @@ export default function LayoutEditorPage() {
 
     // Load modules and links on mount
     useEffect(() => {
+        let isMounted = true;
+
         async function loadData() {
             if (!session?.user?.id) return;
 
@@ -48,24 +50,34 @@ export default function LayoutEditorPage() {
                     getUserLinks(),
                 ]);
 
-                if (modulesResult.success) {
-                    setModules(modulesResult.data);
-                    // setStoreModules is now async
-                    await setStoreModules(modulesResult.data);
-                }
+                if (isMounted) {
+                    if (modulesResult.success) {
+                        setModules(modulesResult.data);
+                        // setStoreModules is now async
+                        await setStoreModules(modulesResult.data);
+                    }
 
-                if (linksResult.success) {
-                    setLinks(linksResult.data);
+                    if (linksResult.success) {
+                        setLinks(linksResult.data);
+                    }
                 }
             } catch (error) {
                 console.error("Failed to load data:", error);
-                toast.error("加载数据失败");
+                if (isMounted) {
+                    toast.error("加载数据失败");
+                }
             } finally {
-                setIsLoading(false);
+                if (isMounted) {
+                    setIsLoading(false);
+                }
             }
         }
 
         loadData();
+
+        return () => {
+            isMounted = false;
+        };
     }, [session?.user?.id, setStoreModules]);
 
     // Handle save layout

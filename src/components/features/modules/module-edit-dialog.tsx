@@ -60,15 +60,28 @@ export function ModuleEditDialog({ module, open, onOpenChange, onSuccess }: Modu
 
     // Load user links when dialog opens for links module
     useEffect(() => {
+        let isMounted = true;
+
         if (open && module?.type === "links" && userLinks.length === 0) {
             setLinksLoading(true);
             getUserLinks().then((result) => {
-                if (result.success) {
-                    setUserLinks(result.data);
+                if (isMounted) {
+                    if (result.success) {
+                        setUserLinks(result.data);
+                    }
+                    setLinksLoading(false);
                 }
-                setLinksLoading(false);
+            }).catch((error) => {
+                console.error("Failed to load user links:", error);
+                if (isMounted) {
+                    setLinksLoading(false);
+                }
             });
         }
+
+        return () => {
+            isMounted = false;
+        };
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open, module?.type]);
 

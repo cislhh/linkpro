@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useLayoutStore } from "@/stores/layout-store";
 import { useEditorStore } from "@/stores/editor-store";
@@ -27,10 +27,10 @@ interface LayoutPreviewProps {
 
 /**
  * LayoutPreview Component
- * 
+ *
  * Renders a preview of the user's page with custom module layout.
  * Displays modules in their saved grid positions (mobile-only).
- * 
+ *
  * Requirements: 16.1 - Display layout result in preview page
  * Note: Desktop mode removed - mobile-only implementation
  */
@@ -43,15 +43,24 @@ export function LayoutPreview({
 }: LayoutPreviewProps) {
     const { data: session } = useSession();
     const { theme } = useEditorStore();
-    const { modules, mobileLayout, setModules } = useLayoutStore();
+    const { modules, mobileLayout } = useLayoutStore();
+    // 使用 useLayoutActions 获取稳定的函数引用
+    const { setModules } = useLayoutStore();
     const [links, setLinks] = useState<Link[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const hasLoaded = useRef(false);
 
     // Load modules and links on mount
     useEffect(() => {
-        async function loadData() {
-            if (!session?.user?.id) return;
+        // 防止重复加载
+        if (hasLoaded.current) return;
+        if (!session?.user?.id) return;
 
+        hasLoaded.current = true;
+
+        let isMounted = true;
+
+        async function loadData() {
             try {
                 setIsLoading(true);
                 const [modulesResult, linksResult] = await Promise.all([
@@ -59,22 +68,30 @@ export function LayoutPreview({
                     getUserLinks(),
                 ]);
 
-                if (modulesResult.success) {
-                    setModules(modulesResult.data);
-                }
+                if (isMounted) {
+                    if (modulesResult.success) {
+                        await setModules(modulesResult.data);
+                    }
 
-                if (linksResult.success) {
-                    setLinks(linksResult.data);
+                    if (linksResult.success) {
+                        setLinks(linksResult.data);
+                    }
                 }
             } catch (error) {
                 console.error("Failed to load data:", error);
             } finally {
-                setIsLoading(false);
+                if (isMounted) {
+                    setIsLoading(false);
+                }
             }
         }
 
         loadData();
-    }, [session?.user?.id, setModules]);
+
+        return () => {
+            isMounted = false;
+        };
+    }, [session?.user?.id]); // 移除 setModules 依赖，避免无限循环
 
     // Always use mobile layout
     const activeLayout = mobileLayout;

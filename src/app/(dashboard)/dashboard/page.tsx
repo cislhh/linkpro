@@ -59,10 +59,12 @@ export default function DashboardPage() {
 
     /**
      * Load modules and links from server on initial mount
-     * 
+     *
      * Requirements: 11.1, 2.2
      */
     const loadData = useCallback(async () => {
+        let isMounted = true;
+
         setIsLoading(true);
         try {
             const [linksResult, modulesResult] = await Promise.all([
@@ -70,15 +72,21 @@ export default function DashboardPage() {
                 getModules(),
             ]);
 
-            if (linksResult.success) {
-                setLinks(linksResult.data);
-            }
+            if (isMounted) {
+                if (linksResult.success) {
+                    setLinks(linksResult.data);
+                }
 
-            if (modulesResult.success) {
-                setModules(modulesResult.data);
+                if (modulesResult.success) {
+                    setModules(modulesResult.data);
+                }
             }
+        } catch (error) {
+            console.error("Failed to load dashboard data:", error);
         } finally {
-            setIsLoading(false);
+            if (isMounted) {
+                setIsLoading(false);
+            }
         }
     }, [setLinks]);
 

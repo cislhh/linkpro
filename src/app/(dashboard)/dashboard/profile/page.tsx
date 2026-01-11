@@ -25,24 +25,32 @@ export default function ProfilePage() {
 
     // Load links on mount
     useEffect(() => {
+        let isMounted = true;
+
         async function loadLinks() {
             if (!session?.user?.id) return;
 
             try {
                 setIsLoading(true);
                 const result = await getUserLinks();
-                if (result.success) {
+                if (isMounted && result.success) {
                     setLocalLinks(result.data);
                     setLinks(result.data);
                 }
             } catch (error) {
                 console.error("Failed to load links:", error);
             } finally {
-                setIsLoading(false);
+                if (isMounted) {
+                    setIsLoading(false);
+                }
             }
         }
 
         loadLinks();
+
+        return () => {
+            isMounted = false;
+        };
     }, [session?.user?.id, setLinks]);
 
     return (

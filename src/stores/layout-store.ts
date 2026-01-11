@@ -36,49 +36,62 @@ export const useLayoutStore = create<LayoutEditorState>((set, get) => ({
    * Set the modules array (used for initial load from server)
    * Generates layout for mobile from module grid positions
    * Uses default templates for new users without custom layouts
-   * 
+   *
    * Requirements: 12.5 - Layout loading restores saved positions
    * Note: Desktop layout generation removed - mobile-only implementation
    */
   setModules: async (modules: PageModule[]) => {
-    // Try to load saved device layouts from user profile
-    const layoutsResult = await getDeviceLayouts();
-    
-    let mobileLayout: LayoutItem[];
+    try {
+      // Try to load saved device layouts from user profile
+      const layoutsResult = await getDeviceLayouts().catch(() => ({ success: false }));
 
-    if (layoutsResult.success && layoutsResult.data.mobileLayout) {
-      // Use saved mobile layout from user profile
-      mobileLayout = layoutsResult.data.mobileLayout as LayoutItem[] || [];
-      
-      // Ensure all modules have layout items
-      const mobileIds = new Set(mobileLayout.map(l => l.i));
-      
-      // Add missing modules to layout
-      modules.forEach(module => {
-        if (!mobileIds.has(module.id)) {
-          const defaultLayout = getDefaultLayoutForNewModule(module.id, module.type, 'mobile', mobileLayout);
-          mobileLayout.push(defaultLayout);
-        }
+      let mobileLayout: LayoutItem[];
+
+      if (layoutsResult.success && layoutsResult.data.mobileLayout) {
+        // Use saved mobile layout from user profile
+        mobileLayout = layoutsResult.data.mobileLayout as LayoutItem[] || [];
+
+        // Ensure all modules have layout items
+        const mobileIds = new Set(mobileLayout.map(l => l.i));
+
+        // Add missing modules to layout
+        modules.forEach(module => {
+          if (!mobileIds.has(module.id)) {
+            const defaultLayout = getDefaultLayoutForNewModule(module.id, module.type, 'mobile', mobileLayout);
+            mobileLayout.push(defaultLayout);
+          }
+        });
+
+        // Remove layout items for deleted modules
+        const moduleIds = new Set(modules.map(m => m.id));
+        mobileLayout = mobileLayout.filter(l => moduleIds.has(l.i));
+      } else {
+        // Generate default layout for new users
+        const moduleData = modules.map((m) => ({ id: m.id, type: m.type }));
+        mobileLayout = generateDefaultLayout(moduleData, 'mobile');
+      }
+
+      // Validate layout to ensure it fits within grid constraints
+      mobileLayout = validateLayout(mobileLayout, 'mobile');
+
+      set({
+        modules,
+        layout: mobileLayout,
+        mobileLayout,
+        desktopLayout: [], // Not used but kept for type compatibility
       });
-      
-      // Remove layout items for deleted modules
-      const moduleIds = new Set(modules.map(m => m.id));
-      mobileLayout = mobileLayout.filter(l => moduleIds.has(l.i));
-    } else {
-      // Generate default layout for new users
+    } catch (error) {
+      console.error("setModules error:", error);
+      // 如果出错，使用默认布局
       const moduleData = modules.map((m) => ({ id: m.id, type: m.type }));
-      mobileLayout = generateDefaultLayout(moduleData, 'mobile');
+      const mobileLayout = generateDefaultLayout(moduleData, 'mobile');
+      set({
+        modules,
+        layout: mobileLayout,
+        mobileLayout,
+        desktopLayout: [],
+      });
     }
-
-    // Validate layout to ensure it fits within grid constraints
-    mobileLayout = validateLayout(mobileLayout, 'mobile');
-
-    set({ 
-      modules, 
-      layout: mobileLayout,
-      mobileLayout,
-      desktopLayout: [], // Not used but kept for type compatibility
-    });
   },
 
   /**
