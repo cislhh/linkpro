@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useSession } from "next-auth/react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { LayoutGrid, Eye, Palette, ExternalLink } from "lucide-react";
 import { ModuleSelector, ModuleList, ModuleEditDialog } from "@/components/features/modules";
@@ -22,7 +22,7 @@ import type { PageModule } from "@/types";
  */
 export default function DashboardPage() {
     const { data: session } = useSession();
-    const { links, theme, setLinks } = useEditorStore();
+    const { theme, setLinks } = useEditorStore();
     const { layout: mobileLayout } = useLayoutStore();
     const [modules, setModules] = useState<PageModule[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -121,7 +121,7 @@ export default function DashboardPage() {
 
     return (
         <div className="h-full">
-            {/* Header with Preview Button */}
+            {/* Header with Stats and Preview Button */}
             <div className="flex items-start justify-between gap-6 mb-6">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">页面管理</h1>
@@ -129,59 +129,37 @@ export default function DashboardPage() {
                         管理你的页面模块和个人主页设置
                     </p>
                 </div>
-                <Button asChild variant="default" size="lg" className="gap-2 shrink-0">
-                    <a href="/dashboard/preview">
-                        <Eye className="h-4 w-4" />
-                        预览页面
-                        <ExternalLink className="h-3 w-3" />
-                    </a>
-                </Button>
+                <div className="flex items-center gap-3 shrink-0">
+                    {/* Stats Pills */}
+                    <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted/50 border">
+                            <LayoutGrid className="h-4 w-4 text-muted-foreground" />
+                            <div className="flex flex-col">
+                                <span className="text-[10px] text-muted-foreground leading-none">模块</span>
+                                <span className="text-sm font-semibold leading-tight">{modules.length}</span>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-muted/50 border">
+                            <Palette className="h-4 w-4 text-muted-foreground" />
+                            <div className="flex flex-col">
+                                <span className="text-[10px] text-muted-foreground leading-none">主题</span>
+                                <span className="text-sm font-semibold leading-tight capitalize">{theme}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {/* Preview Button */}
+                    <Button asChild variant="default" size="lg" className="gap-2">
+                        <a href="/dashboard/preview">
+                            <Eye className="h-4 w-4" />
+                            预览页面
+                            <ExternalLink className="h-3 w-3" />
+                        </a>
+                    </Button>
+                </div>
             </div>
 
             {/* Module Management */}
             <div className="space-y-6 overflow-auto">
-
-                {/* Stats Cards */}
-                <div className="grid gap-4 md:grid-cols-3">
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">模块数量</CardTitle>
-                            <LayoutGrid className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{modules.length}</div>
-                            <p className="text-xs text-muted-foreground">
-                                {links.length} 个链接
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">当前主题</CardTitle>
-                            <Palette className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold capitalize">{theme}</div>
-                            <p className="text-xs text-muted-foreground">
-                                {getThemeDescription(theme)}
-                            </p>
-                        </CardContent>
-                    </Card>
-
-                    <Card>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">页面访问</CardTitle>
-                            <Eye className="h-4 w-4 text-muted-foreground" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">-</div>
-                            <p className="text-xs text-muted-foreground">
-                                即将推出
-                            </p>
-                        </CardContent>
-                    </Card>
-                </div>
 
                 {/* Module Selector */}
                 <ModuleSelector onModuleCreated={handleModuleCreated} />
@@ -211,20 +189,4 @@ export default function DashboardPage() {
             />
         </div>
     );
-}
-
-/**
- * Get theme description in Chinese
- */
-function getThemeDescription(theme: string): string {
-    switch (theme) {
-        case "aurora":
-            return "极光渐变效果";
-        case "cyber":
-            return "赛博霓虹效果";
-        case "glass":
-            return "玻璃拟态效果";
-        default:
-            return "默认主题";
-    }
 }
