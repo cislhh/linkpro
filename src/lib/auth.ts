@@ -52,6 +52,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           email: user.email,
           name: user.name,
           username: user.username,
+          phone: user.phone,
+          contact: user.contact,
+          bio: user.bio,
+          image: user.avatarUrl,
         };
       },
     }),
@@ -61,6 +65,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.id = user.id as string;
         token.username = (user as { username: string }).username;
+        token.phone = (user as { phone?: string | null }).phone;
+        token.contact = (user as { contact?: string | null }).contact;
+        token.bio = (user as { bio?: string | null }).bio;
       }
       return token;
     },
@@ -68,6 +75,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token && session.user) {
         session.user.id = token.id as string;
         session.user.username = token.username as string;
+        session.user.phone = token.phone as string | null | undefined;
+        session.user.contact = token.contact as string | null | undefined;
+        session.user.bio = token.bio as string | null | undefined;
       }
       return session;
     },

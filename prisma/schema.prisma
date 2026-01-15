@@ -18,6 +18,8 @@ model User {
   name          String?
   bio           String?
   avatarUrl     String?
+  phone         String?   // 电话号码
+  contact       String?   // 联系方式（微信、邮箱等）
   password      String
   theme         String    @default("aurora")
   // Layout configurations for different device modes

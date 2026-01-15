@@ -193,36 +193,14 @@ export function ModuleEditDialog({ module, open, onOpenChange, onSuccess }: Modu
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                     {module.type === "bio" && (
-                        <>
-                            <div className="space-y-2">
-                                <Label htmlFor="name">姓名</Label>
-                                <Input
-                                    id="name"
-                                    value={bioData.name}
-                                    onChange={(e) => setBioData({ ...bioData, name: e.target.value })}
-                                    placeholder="请输入姓名"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="bio">简介</Label>
-                                <Textarea
-                                    id="bio"
-                                    value={bioData.bio}
-                                    onChange={(e) => setBioData({ ...bioData, bio: e.target.value })}
-                                    rows={3}
-                                    placeholder="请输入个人简介"
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="avatarUrl">头像 URL</Label>
-                                <Input
-                                    id="avatarUrl"
-                                    value={bioData.avatar}
-                                    onChange={(e) => setBioData({ ...bioData, avatar: e.target.value })}
-                                    placeholder="https://example.com/avatar.jpg"
-                                />
-                            </div>
-                        </>
+                        <div className="py-8 text-center">
+                            <p className="text-muted-foreground mb-4">
+                                个人简介信息请在"个人信息"页面编辑
+                            </p>
+                            <Button asChild variant="outline">
+                                <a href="/dashboard/profile">前往个人信息页面</a>
+                            </Button>
+                        </div>
                     )}
 
                     {module.type === "skills" && (

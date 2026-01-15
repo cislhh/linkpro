@@ -2,15 +2,16 @@
 
 import { ThemeProps } from '@/types';
 import { cn } from '@/lib/utils';
+import { Phone, Mail } from 'lucide-react';
 
 /**
  * BaseTheme - 主题组件的基础布局
- * 
+ *
  * 提供所有主题共享的基础结构：
- * - 用户头像、名称、简介
+ * - 用户头像、名称、简介、电话、联系方式
  * - 链接列表渲染
  * - 响应式布局
- * 
+ *
  * Requirements: 3.1
  */
 export function BaseTheme({ links, user, className }: ThemeProps) {
@@ -33,6 +34,24 @@ export function BaseTheme({ links, user, className }: ThemeProps) {
                     </h1>
                     {user.bio && (
                         <p className="mt-2 text-sm opacity-80">{user.bio}</p>
+                    )}
+
+                    {/* Contact Info */}
+                    {(user.phone || user.contact) && (
+                        <div className="mt-4 flex flex-col items-center gap-2">
+                            {user.phone && (
+                                <div className="flex items-center gap-2 text-sm opacity-70">
+                                    <Phone className="h-3.5 w-3.5" />
+                                    <span>{user.phone}</span>
+                                </div>
+                            )}
+                            {user.contact && (
+                                <div className="flex items-center gap-2 text-sm opacity-70">
+                                    <Mail className="h-3.5 w-3.5" />
+                                    <span>{user.contact}</span>
+                                </div>
+                            )}
+                        </div>
                     )}
                 </div>
 

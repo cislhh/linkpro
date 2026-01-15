@@ -61,6 +61,8 @@ const sampleUser = {
     bio: '这是一个主题预览示例',
     avatarUrl: null,
     username: 'demo',
+    phone: null,
+    contact: null,
 };
 
 export default function ThemesPage() {

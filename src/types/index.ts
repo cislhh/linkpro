@@ -23,6 +23,8 @@ export interface User {
   name: string | null;
   bio: string | null;
   avatarUrl: string | null;
+  phone: string | null;
+  contact: string | null;
   theme: ThemeType;
   createdAt: Date;
   updatedAt: Date;
@@ -76,7 +78,7 @@ export type ActionResult<T> =
 // Theme props for theme components
 export interface ThemeProps {
   links: Link[];
-  user: Pick<User, 'name' | 'bio' | 'avatarUrl' | 'username'>;
+  user: Pick<User, 'name' | 'bio' | 'avatarUrl' | 'username' | 'phone' | 'contact'>;
   className?: string;
 }
 

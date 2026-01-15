@@ -15,7 +15,9 @@ export const updateLinkSchema = createLinkSchema.partial();
 export const updateProfileSchema = z.object({
   name: z.string().max(100).optional(),
   bio: z.string().max(500).optional(),
-  avatarUrl: z.string().url().optional().or(z.literal('')),
+  avatarUrl: z.string().max(500).optional().or(z.literal('')),
+  phone: z.string().regex(/^[+]?[\d\s\-()]*$/, 'Invalid phone number').max(50).optional().or(z.literal('')),
+  contact: z.string().max(200).optional().or(z.literal('')),
 });
 
 // Theme validation schema

@@ -12,19 +12,23 @@ import {
   type ThemeType,
   type RegisterInput,
 } from "@/lib/validations";
+import type { User } from "@prisma/client";
+import type { Prisma } from "@prisma/client";
 
-// User type for return values
-interface User {
+// User type for return values - matches select statements in actions
+type UserResult = {
   id: string;
   email: string;
   username: string;
   name: string | null;
   bio: string | null;
   avatarUrl: string | null;
+  phone: string | null;
+  contact: string | null;
   theme: string;
   createdAt: Date;
   updatedAt: Date;
-}
+};
 
 // Action result type
 type ActionResult<T> =
@@ -36,7 +40,7 @@ type ActionResult<T> =
  */
 export async function registerUser(
   data: RegisterInput
-): Promise<ActionResult<User>> {
+): Promise<ActionResult<UserResult>> {
   try {
     // Validate input
     const validated = registerSchema.parse(data);
@@ -76,6 +80,8 @@ export async function registerUser(
         name: true,
         bio: true,
         avatarUrl: true,
+        phone: true,
+        contact: true,
         theme: true,
         createdAt: true,
         updatedAt: true,
@@ -97,7 +103,7 @@ export async function registerUser(
  */
 export async function getUserByEmail(
   email: string
-): Promise<ActionResult<User | null>> {
+): Promise<ActionResult<UserResult | null>> {
   try {
     const user = await prisma.user.findUnique({
       where: { email },
@@ -108,6 +114,8 @@ export async function getUserByEmail(
         name: true,
         bio: true,
         avatarUrl: true,
+        phone: true,
+        contact: true,
         theme: true,
         createdAt: true,
         updatedAt: true,
@@ -122,12 +130,12 @@ export async function getUserByEmail(
 }
 
 /**
- * Update user profile (name, bio, avatarUrl)
+ * Update user profile (name, bio, avatarUrl, phone, contact)
  * Requirements: 3.3
  */
 export async function updateUserProfile(
   data: UpdateProfileInput
-): Promise<ActionResult<User>> {
+): Promise<ActionResult<UserResult>> {
   try {
     // Check authentication
     const session = await auth();
@@ -145,6 +153,8 @@ export async function updateUserProfile(
         name: validated.name,
         bio: validated.bio,
         avatarUrl: validated.avatarUrl === "" ? null : validated.avatarUrl,
+        phone: validated.phone && validated.phone !== "" ? validated.phone : null,
+        contact: validated.contact && validated.contact !== "" ? validated.contact : null,
       },
       select: {
         id: true,
@@ -153,6 +163,8 @@ export async function updateUserProfile(
         name: true,
         bio: true,
         avatarUrl: true,
+        phone: true,
+        contact: true,
         theme: true,
         createdAt: true,
         updatedAt: true,
@@ -175,7 +187,7 @@ export async function updateUserProfile(
  */
 export async function updateUserTheme(
   theme: ThemeType
-): Promise<ActionResult<User>> {
+): Promise<ActionResult<UserResult>> {
   try {
     // Check authentication
     const session = await auth();
@@ -199,6 +211,8 @@ export async function updateUserTheme(
         name: true,
         bio: true,
         avatarUrl: true,
+        phone: true,
+        contact: true,
         theme: true,
         createdAt: true,
         updatedAt: true,
@@ -212,5 +226,44 @@ export async function updateUserTheme(
     }
     console.error("updateUserTheme error:", error);
     return { success: false, error: "Failed to update theme" };
+  }
+}
+
+/**
+ * Get current user profile
+ * Returns the authenticated user's profile data including phone and contact
+ */
+export async function getUserProfile(): Promise<ActionResult<UserResult>> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "需要认证" };
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        name: true,
+        bio: true,
+        avatarUrl: true,
+        phone: true,
+        contact: true,
+        theme: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!user) {
+      return { success: false, error: "用户不存在" };
+    }
+
+    return { success: true, data: user };
+  } catch (error) {
+    console.error("getUserProfile error:", error);
+    return { success: false, error: "获取用户信息失败" };
   }
 }

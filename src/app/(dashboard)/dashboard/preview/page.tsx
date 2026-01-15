@@ -27,8 +27,10 @@ export default function PreviewPage() {
 
     // Get user info from session
     const userName = session?.user?.name;
-    const userBio = null; // Bio would come from user profile
+    const userBio = (session?.user as any)?.bio;
     const userAvatar = session?.user?.image;
+    const userPhone = (session?.user as any)?.phone;
+    const userContact = (session?.user as any)?.contact;
 
     return (
         <div className="space-y-6">
@@ -130,6 +132,8 @@ export default function PreviewPage() {
                                 userName={userName}
                                 userBio={userBio}
                                 userAvatar={userAvatar}
+                                userPhone={userPhone}
+                                userContact={userContact}
                                 deviceMode="mobile"
                             />
                         ) : (

@@ -23,6 +23,10 @@ interface LayoutPreviewProps {
     userBio?: string | null;
     /** User avatar URL */
     userAvatar?: string | null;
+    /** User phone */
+    userPhone?: string | null;
+    /** User contact */
+    userContact?: string | null;
 }
 
 /**
@@ -40,6 +44,8 @@ export function LayoutPreview({
     userName,
     userBio,
     userAvatar,
+    userPhone,
+    userContact,
 }: LayoutPreviewProps) {
     const { data: session } = useSession();
     const { theme } = useEditorStore();
@@ -188,6 +194,11 @@ export function LayoutPreview({
                         links={links}
                         deviceMode={deviceMode}
                         theme={theme}
+                        userName={userName}
+                        userBio={userBio}
+                        userAvatar={userAvatar}
+                        userPhone={userPhone}
+                        userContact={userContact}
                     />
                 )}
 
@@ -208,16 +219,40 @@ interface ModuleLayoutGridProps {
     links: Link[];
     deviceMode: DeviceMode;
     theme: ThemeType;
+    userName?: string | null;
+    userBio?: string | null;
+    userAvatar?: string | null;
+    userPhone?: string | null;
+    userContact?: string | null;
 }
 
 /**
  * ModuleLayoutGrid Component
- * 
+ *
  * Renders modules in a CSS Grid based on their layout positions.
  * This is a read-only preview version (no drag/resize).
  * Mobile-only implementation.
  */
-function ModuleLayoutGrid({ modules, layout, links, deviceMode, theme }: ModuleLayoutGridProps) {
+function ModuleLayoutGrid({
+    modules,
+    layout,
+    links,
+    deviceMode,
+    theme,
+    userName,
+    userBio,
+    userAvatar,
+    userPhone,
+    userContact,
+}: ModuleLayoutGridProps) {
+    // Create userData object for BioModule
+    const userData = {
+        name: userName || null,
+        bio: userBio || null,
+        avatarUrl: userAvatar || null,
+        phone: userPhone || null,
+        contact: userContact || null,
+    };
     // Create a map of layout items by module ID
     const layoutMap = new Map(layout.map((item) => [item.i, item]));
 
@@ -260,6 +295,7 @@ function ModuleLayoutGrid({ modules, layout, links, deviceMode, theme }: ModuleL
                             module={module}
                             links={links}
                             isEditing={false}
+                            userData={userData}
                             className="h-full"
                         />
                     </div>

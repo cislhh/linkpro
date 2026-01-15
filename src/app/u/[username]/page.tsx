@@ -24,6 +24,8 @@ interface UserData {
     name: string | null;
     bio: string | null;
     avatarUrl: string | null;
+    phone: string | null;
+    contact: string | null;
     theme: string;
     isPublished: boolean;
     links: Array<{
@@ -51,10 +53,12 @@ async function getUserByUsername(username: string): Promise<UserData | null> {
         name: string | null;
         bio: string | null;
         avatarUrl: string | null;
+        phone: string | null;
+        contact: string | null;
         theme: string;
         isPublished: boolean;
     }>>`
-        SELECT id, username, name, bio, "avatarUrl", theme, "isPublished"
+        SELECT id, username, name, bio, "avatarUrl", phone, contact, theme, "isPublished"
         FROM "User"
         WHERE username = ${username}
     `;
@@ -83,6 +87,8 @@ async function getUserByUsername(username: string): Promise<UserData | null> {
         name: userData.name,
         bio: userData.bio,
         avatarUrl: userData.avatarUrl,
+        phone: userData.phone,
+        contact: userData.contact,
         theme: userData.theme,
         isPublished: userData.isPublished,
         links,
@@ -171,6 +177,8 @@ export default async function PublicPage({ params }: PageProps) {
         bio: user.bio,
         avatarUrl: user.avatarUrl,
         username: user.username,
+        phone: user.phone,
+        contact: user.contact,
     };
 
     // 转换链接数据类型
