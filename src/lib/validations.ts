@@ -11,6 +11,16 @@ export const createLinkSchema = z.object({
 
 export const updateLinkSchema = createLinkSchema.partial();
 
+// Project schema - defined early for use in updateProfileSchema
+export const projectSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1, 'Project name is required').max(100, 'Project name too long'),
+  description: z.string().max(500, 'Description too long'),
+  url: z.string().url('Invalid URL').nullable().optional(),
+  imageUrl: z.string().url('Invalid image URL').nullable().optional(),
+  tags: z.array(z.string().max(30, 'Tag too long')).max(10, 'Too many tags'),
+});
+
 // User profile validation schema
 export const updateProfileSchema = z.object({
   name: z.string().max(100).optional(),
@@ -18,6 +28,7 @@ export const updateProfileSchema = z.object({
   avatarUrl: z.string().max(500).optional().or(z.literal('')),
   phone: z.string().regex(/^[+]?[\d\s\-()]*$/, 'Invalid phone number').max(50).optional().or(z.literal('')),
   contact: z.string().max(200).optional().or(z.literal('')),
+  projects: z.array(projectSchema).max(50, 'Too many projects').optional().or(z.literal(null)),
 });
 
 // Theme validation schema
@@ -73,20 +84,10 @@ export const skillsModuleDataSchema = z.object({
   skills: z.array(z.string().max(50, 'Skill name too long')).max(50, 'Too many skills'),
 });
 
-// Project schema
-export const projectSchema = z.object({
-  id: z.string(),
-  name: z.string().min(1, 'Project name is required').max(100, 'Project name too long'),
-  description: z.string().max(500, 'Description too long'),
-  url: z.string().url('Invalid URL').nullable().optional(),
-  imageUrl: z.string().url('Invalid image URL').nullable().optional(),
-  tags: z.array(z.string().max(30, 'Tag too long')).max(10, 'Too many tags'),
-});
-
-// Projects module data schema
+// Projects module data schema - references User.projects by IDs
 export const projectsModuleDataSchema = z.object({
   type: z.literal('projects'),
-  projects: z.array(projectSchema).max(20, 'Too many projects'),
+  projectIds: z.array(z.string()).max(20, 'Too many projects to display'),
 });
 
 // Union of all module data schemas

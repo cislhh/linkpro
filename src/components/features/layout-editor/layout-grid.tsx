@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ResponsiveGridLayout, useContainerWidth } from "react-grid-layout";
 import { useLayoutStore } from "@/stores/layout-store";
 import { ModuleCard } from "./module-card";
-import type { PageModule, Link, LayoutItem } from "@/types";
+import type { PageModule, Link, LayoutItem, Project } from "@/types";
 import { cn } from "@/lib/utils";
 
 // Import react-grid-layout styles
@@ -14,6 +14,7 @@ import "./layout-grid.css";
 interface LayoutGridProps {
     modules: PageModule[];
     links: Link[];
+    userProjects?: Project[];
     className?: string;
     cols?: number;
     rowHeight?: number;
@@ -33,6 +34,7 @@ interface LayoutGridProps {
 export function LayoutGrid({
     modules,
     links,
+    userProjects,
     className,
     cols = 2, // Mobile-only: 2 columns
     rowHeight = 80, // Mobile row height
@@ -146,6 +148,7 @@ export function LayoutGrid({
                         <ModuleCard
                             module={module}
                             links={links}
+                            userProjects={userProjects}
                             isEditing={isEditing}
                         />
                     </div>

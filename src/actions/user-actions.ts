@@ -14,6 +14,7 @@ import {
 } from "@/lib/validations";
 import type { User } from "@prisma/client";
 import type { Prisma } from "@prisma/client";
+import type { Project } from "@/types";
 
 // User type for return values - matches select statements in actions
 type UserResult = {
@@ -25,6 +26,7 @@ type UserResult = {
   avatarUrl: string | null;
   phone: string | null;
   contact: string | null;
+  projects: Project[] | null;
   theme: string;
   createdAt: Date;
   updatedAt: Date;
@@ -82,6 +84,7 @@ export async function registerUser(
         avatarUrl: true,
         phone: true,
         contact: true,
+        projects: true,
         theme: true,
         createdAt: true,
         updatedAt: true,
@@ -116,6 +119,7 @@ export async function getUserByEmail(
         avatarUrl: true,
         phone: true,
         contact: true,
+        projects: true,
         theme: true,
         createdAt: true,
         updatedAt: true,
@@ -130,7 +134,7 @@ export async function getUserByEmail(
 }
 
 /**
- * Update user profile (name, bio, avatarUrl, phone, contact)
+ * Update user profile (name, bio, avatarUrl, phone, contact, projects)
  * Requirements: 3.3
  */
 export async function updateUserProfile(
@@ -155,6 +159,7 @@ export async function updateUserProfile(
         avatarUrl: validated.avatarUrl === "" ? null : validated.avatarUrl,
         phone: validated.phone && validated.phone !== "" ? validated.phone : null,
         contact: validated.contact && validated.contact !== "" ? validated.contact : null,
+        ...(validated.projects !== undefined && { projects: validated.projects }),
       },
       select: {
         id: true,
@@ -165,6 +170,7 @@ export async function updateUserProfile(
         avatarUrl: true,
         phone: true,
         contact: true,
+        projects: true,
         theme: true,
         createdAt: true,
         updatedAt: true,
@@ -213,6 +219,7 @@ export async function updateUserTheme(
         avatarUrl: true,
         phone: true,
         contact: true,
+        projects: true,
         theme: true,
         createdAt: true,
         updatedAt: true,
@@ -251,6 +258,7 @@ export async function getUserProfile(): Promise<ActionResult<UserResult>> {
         avatarUrl: true,
         phone: true,
         contact: true,
+        projects: true,
         theme: true,
         createdAt: true,
         updatedAt: true,
@@ -265,5 +273,53 @@ export async function getUserProfile(): Promise<ActionResult<UserResult>> {
   } catch (error) {
     console.error("getUserProfile error:", error);
     return { success: false, error: "获取用户信息失败" };
+  }
+}
+
+/**
+ * Update user projects
+ * Requirements: Project management in profile page
+ */
+export async function updateUserProjects(
+  projects: Project[]
+): Promise<ActionResult<UserResult>> {
+  try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "需要认证" };
+    }
+
+    // Validate projects array
+    const validated = updateProfileSchema.parse({ projects });
+
+    // Update user projects
+    const user = await prisma.user.update({
+      where: { id: session.user.id },
+      data: {
+        projects: validated.projects,
+      },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        name: true,
+        bio: true,
+        avatarUrl: true,
+        phone: true,
+        contact: true,
+        projects: true,
+        theme: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return { success: true, data: user };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { success: false, error: error.issues[0]?.message ?? "验证失败" };
+    }
+    console.error("updateUserProjects error:", error);
+    return { success: false, error: "更新项目失败" };
   }
 }

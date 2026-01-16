@@ -6,10 +6,11 @@ import { useLayoutStore } from "@/stores/layout-store";
 import { useEditorStore } from "@/stores/editor-store";
 import { getModules } from "@/actions/module-actions";
 import { getUserLinks } from "@/actions/link-actions";
+import { getUserProfile } from "@/actions/user-actions";
 import { ModuleCard } from "@/components/features/layout-editor/module-card";
 import { getThemeStyles } from "./live-preview";
 import { cn } from "@/lib/utils";
-import type { PageModule, Link, LayoutItem, DeviceMode, ThemeType } from "@/types";
+import type { PageModule, Link, LayoutItem, DeviceMode, ThemeType, Project } from "@/types";
 import { Loader2 } from "lucide-react";
 
 interface LayoutPreviewProps {
@@ -56,6 +57,7 @@ export function LayoutPreview({
     // 使用 useLayoutActions 获取稳定的函数引用
     const { setModules } = useLayoutStore();
     const [links, setLinks] = useState<Link[]>([]);
+    const [userProjects, setUserProjects] = useState<Project[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     // Load modules and links on mount
@@ -83,14 +85,16 @@ export function LayoutPreview({
                 console.log("[LayoutPreview] Starting data load...");
                 setIsLoading(true);
 
-                const [modulesResult, linksResult] = await Promise.all([
+                const [modulesResult, linksResult, profileResult] = await Promise.all([
                     getModules(),
                     getUserLinks(),
+                    getUserProfile(),
                 ]);
 
                 console.log("[LayoutPreview] Data loaded:", {
                     modules: modulesResult.success ? modulesResult.data.length : 'failed',
-                    links: linksResult.success ? linksResult.data.length : 'failed'
+                    links: linksResult.success ? linksResult.data.length : 'failed',
+                    projects: profileResult.success && profileResult.data.projects ? profileResult.data.projects.length : 'failed'
                 });
 
                 if (isMounted) {
@@ -106,6 +110,10 @@ export function LayoutPreview({
 
                     if (linksResult.success) {
                         setLinks(linksResult.data);
+                    }
+
+                    if (profileResult.success && profileResult.data.projects) {
+                        setUserProjects(profileResult.data.projects);
                     }
                 }
             } catch (error) {
@@ -188,6 +196,7 @@ export function LayoutPreview({
                         modules={modules}
                         layout={activeLayout}
                         links={links}
+                        userProjects={userProjects}
                         deviceMode={deviceMode}
                         theme={theme}
                         userName={userName}
@@ -213,6 +222,7 @@ interface ModuleLayoutGridProps {
     modules: PageModule[];
     layout: LayoutItem[];
     links: Link[];
+    userProjects?: Project[];
     deviceMode: DeviceMode;
     theme: ThemeType;
     userName?: string | null;
@@ -233,6 +243,7 @@ function ModuleLayoutGrid({
     modules,
     layout,
     links,
+    userProjects,
     deviceMode,
     theme,
     userName,
@@ -290,6 +301,7 @@ function ModuleLayoutGrid({
                         <ModuleCard
                             module={module}
                             links={links}
+                            userProjects={userProjects}
                             isEditing={false}
                             userData={userData}
                             className="h-full"

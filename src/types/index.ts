@@ -25,6 +25,7 @@ export interface User {
   avatarUrl: string | null;
   phone: string | null;
   contact: string | null;
+  projects: Project[] | null;
   theme: ThemeType;
   createdAt: Date;
   updatedAt: Date;
@@ -157,10 +158,10 @@ export interface Project {
   tags: string[];
 }
 
-// Projects module data - project cards list
+// Projects module data - references User.projects by IDs
 export interface ProjectsModuleData {
   type: 'projects';
-  projects: Project[];
+  projectIds: string[]; // References to User.projects array indices (stored as strings for consistency)
 }
 
 // Helper type to get module data by type

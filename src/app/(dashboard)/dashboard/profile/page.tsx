@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Link2 } from "lucide-react";
+import { Link2, FolderGit2 } from "lucide-react";
 import { LinkList } from "@/components/features/link-editor";
+import { ProjectList } from "@/components/features/project-editor";
 import { ProfileForm } from "@/components/features/profile";
 import { useEditorStore } from "@/stores/editor-store";
 import { getUserLinks } from "@/actions/link-actions";
@@ -115,6 +116,22 @@ export default function ProfilePage() {
                         </CardContent>
                     </Card>
                 )}
+
+                {/* Project Management Card */}
+                <Card>
+                    <CardHeader>
+                        <div className="flex items-center gap-2">
+                            <FolderGit2 className="h-5 w-5" />
+                            <CardTitle>项目管理</CardTitle>
+                        </div>
+                        <CardDescription>
+                            添加、编辑和管理您的个人项目
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ProjectList />
+                    </CardContent>
+                </Card>
             </div>
         </div>
     );

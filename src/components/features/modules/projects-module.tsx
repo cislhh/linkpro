@@ -7,21 +7,40 @@ import { cn } from "@/lib/utils";
 
 interface ProjectsModuleProps {
     module: PageModule;
+    userProjects?: Project[];
     className?: string;
     isPreview?: boolean;
 }
 
 /**
  * ProjectsModule Component
- * 
+ *
  * Displays a list of project cards with images, descriptions, and tags.
  * Supports linking to project URLs.
- * 
+ *
+ * Data priority:
+ * 1. User.projects (if provided via userProjects prop)
+ * 2. Module data (legacy fallback for backward compatibility)
+ *
  * Requirements: 11.1
  */
-export function ProjectsModule({ module, className, isPreview = false }: ProjectsModuleProps) {
-    const data = module.data as ProjectsModuleData;
-    const projects = data.projects || [];
+export function ProjectsModule({
+    module,
+    userProjects,
+    className,
+    isPreview = false
+}: ProjectsModuleProps) {
+    const moduleData = module.data as ProjectsModuleData;
+
+    // Use user projects if available, otherwise fall back to module data (legacy)
+    let projects: Project[] = [];
+    if (userProjects && moduleData.projectIds) {
+        // Filter user projects by selected IDs
+        projects = userProjects.filter((p) => moduleData.projectIds.includes(p.id));
+    } else if ((moduleData as any).projects) {
+        // Legacy fallback: projects stored directly in module data
+        projects = (moduleData as any).projects || [];
+    }
 
     return (
         <Card className={cn("h-full", className)}>

@@ -20,6 +20,7 @@ model User {
   avatarUrl     String?
   phone         String?   // 电话号码
   contact       String?   // 联系方式（微信、邮箱等）
+  projects      Json?     // 个人项目列表
   password      String
   theme         String    @default("aurora")
   // Layout configurations for different device modes

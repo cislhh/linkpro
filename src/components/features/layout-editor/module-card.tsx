@@ -3,7 +3,7 @@
 import { GripVertical, Link as LinkIcon, User, Sparkles, FolderGit2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LinksModule, BioModule, SkillsModule, ProjectsModule } from "@/components/features/modules";
-import type { PageModule, Link, ModuleType } from "@/types";
+import type { PageModule, Link, ModuleType, Project } from "@/types";
 import { cn } from "@/lib/utils";
 
 interface UserData {
@@ -17,6 +17,7 @@ interface UserData {
 interface ModuleCardProps {
   module: PageModule;
   links: Link[];
+  userProjects?: Project[];
   isEditing?: boolean;
   userData?: UserData;
   className?: string;
@@ -30,7 +31,7 @@ interface ModuleCardProps {
  *
  * Requirements: 12.2
  */
-export function ModuleCard({ module, links, isEditing = false, userData, className }: ModuleCardProps) {
+export function ModuleCard({ module, links, userProjects, isEditing = false, userData, className }: ModuleCardProps) {
   const moduleIcon = getModuleIcon(module.type);
   const moduleLabel = getModuleLabel(module.type);
 
@@ -59,7 +60,7 @@ export function ModuleCard({ module, links, isEditing = false, userData, classNa
 
       {/* Module Content */}
       <div className="h-full overflow-hidden">
-        <ModuleContent module={module} links={links} userData={userData} isPreview />
+        <ModuleContent module={module} links={links} userProjects={userProjects} userData={userData} isPreview />
       </div>
     </div>
   );
@@ -68,6 +69,7 @@ export function ModuleCard({ module, links, isEditing = false, userData, classNa
 interface ModuleContentProps {
   module: PageModule;
   links: Link[];
+  userProjects?: Project[];
   userData?: UserData;
   isPreview?: boolean;
 }
@@ -77,7 +79,7 @@ interface ModuleContentProps {
  *
  * Renders the appropriate module component based on module type.
  */
-function ModuleContent({ module, links, userData, isPreview = false }: ModuleContentProps) {
+function ModuleContent({ module, links, userProjects, userData, isPreview = false }: ModuleContentProps) {
   switch (module.type) {
     case "links":
       return <LinksModule module={module} links={links} isPreview={isPreview} />;
@@ -86,7 +88,7 @@ function ModuleContent({ module, links, userData, isPreview = false }: ModuleCon
     case "skills":
       return <SkillsModule module={module} />;
     case "projects":
-      return <ProjectsModule module={module} isPreview={isPreview} />;
+      return <ProjectsModule module={module} userProjects={userProjects} isPreview={isPreview} />;
     default:
       return (
         <Card className="h-full">

@@ -17,7 +17,9 @@ import { Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { updateModule } from "@/actions/module-actions";
 import { getUserLinks } from "@/actions/link-actions";
+import { getUserProfile } from "@/actions/user-actions";
 import { BioModuleConfigDialog } from "./bio-module-config-dialog";
+import { ProjectsModuleConfigDialog } from "./projects-module-config-dialog";
 import type { PageModule, ModuleData, Link, Project, BioModuleData, SkillsModuleData, LinksModuleData, ProjectsModuleData } from "@/types";
 
 interface ModuleEditDialogProps {
@@ -52,13 +54,15 @@ export function ModuleEditDialog({ module, open, onOpenChange, onSuccess }: Modu
     const [isPending, setIsPending] = useState(false);
     const [userLinks, setUserLinks] = useState<Link[]>([]);
     const [linksLoading, setLinksLoading] = useState(false);
+    const [userProjects, setUserProjects] = useState<Project[]>([]);
+    const [projectsLoading, setProjectsLoading] = useState(false);
     const [bioConfigOpen, setBioConfigOpen] = useState(false);
+    const [projectsConfigOpen, setProjectsConfigOpen] = useState(false);
 
     // Form state for each module type
     const [bioData, setBioData] = useState({ name: "", bio: "", avatar: "" });
     const [skillsData, setSkillsData] = useState({ skills: "" });
     const [linksData, setLinksData] = useState<string[]>([]);
-    const [projectsData, setProjectsData] = useState<Project[]>([]);
 
     // Load user links when dialog opens for links module
     useEffect(() => {
@@ -77,6 +81,33 @@ export function ModuleEditDialog({ module, open, onOpenChange, onSuccess }: Modu
                 console.error("Failed to load user links:", error);
                 if (isMounted) {
                     setLinksLoading(false);
+                }
+            });
+        }
+
+        return () => {
+            isMounted = false;
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [open, module?.type]);
+
+    // Load user projects when dialog opens for projects module
+    useEffect(() => {
+        let isMounted = true;
+
+        if (open && module?.type === "projects" && userProjects.length === 0) {
+            setProjectsLoading(true);
+            getUserProfile().then((result) => {
+                if (isMounted) {
+                    if (result.success && result.data.projects) {
+                        setUserProjects(result.data.projects);
+                    }
+                    setProjectsLoading(false);
+                }
+            }).catch((error) => {
+                console.error("Failed to load user projects:", error);
+                if (isMounted) {
+                    setProjectsLoading(false);
                 }
             });
         }
@@ -116,11 +147,7 @@ export function ModuleEditDialog({ module, open, onOpenChange, onSuccess }: Modu
                 setLinksData(links.linkIds || []);
                 break;
             }
-            case "projects": {
-                const projects = dataWithKey.data as ProjectsModuleData;
-                setProjectsData(projects.projects || []);
-                break;
-            }
+            // projects module now uses config dialog, no need to load data here
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [module?.id, module?.updatedAt]);
@@ -157,11 +184,9 @@ export function ModuleEditDialog({ module, open, onOpenChange, onSuccess }: Modu
                 };
                 break;
             case "projects":
-                updatedData = {
-                    type: "projects",
-                    projects: projectsData,
-                };
-                break;
+                // Projects module now uses config dialog, this case should not be reached
+                setIsPending(false);
+                return;
             default:
                 setIsPending(false);
                 return;
@@ -283,148 +308,71 @@ export function ModuleEditDialog({ module, open, onOpenChange, onSuccess }: Modu
                     )}
 
                     {module.type === "projects" && (
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <Label>项目列表</Label>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => {
-                                        setProjectsData([
-                                            ...projectsData,
-                                            {
-                                                id: `temp-${Date.now()}`,
-                                                name: "",
-                                                description: "",
-                                                url: null,
-                                                imageUrl: null,
-                                                tags: [],
-                                            },
-                                        ]);
-                                    }}
-                                >
-                                    <Plus className="h-4 w-4 mr-1" />
-                                    添加项目
-                                </Button>
+                        <div className="py-8 text-center space-y-4">
+                            <div>
+                                <p className="text-muted-foreground mb-2">
+                                    项目数据来自"个人信息"页面
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    您可以在此勾选想要展示的项目
+                                </p>
                             </div>
-                            {projectsData.length === 0 ? (
-                                <div className="text-sm text-muted-foreground py-4">
-                                    暂无项目，点击上方按钮添加
-                                </div>
-                            ) : (
-                                <div className="max-h-[300px] overflow-y-auto pr-2 space-y-4">
-                                    {projectsData.map((project, index) => (
-                                        <div
-                                            key={project.id}
-                                            className="p-4 rounded-lg border space-y-3"
-                                        >
-                                            <div className="flex items-center justify-between">
-                                                <span className="text-sm font-medium">项目 {index + 1}</span>
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="icon-sm"
-                                                    onClick={() => {
-                                                        setProjectsData(
-                                                            projectsData.filter((p) => p.id !== project.id)
-                                                        );
-                                                    }}
-                                                >
-                                                    <Trash2 className="h-4 w-4 text-destructive" />
-                                                </Button>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <Input
-                                                    value={project.name}
-                                                    onChange={(e) => {
-                                                        const newProjects = [...projectsData];
-                                                        newProjects[index] = {
-                                                            ...project,
-                                                            name: e.target.value,
-                                                        };
-                                                        setProjectsData(newProjects);
-                                                    }}
-                                                    placeholder="项目名称"
-                                                />
-                                                <Textarea
-                                                    value={project.description}
-                                                    onChange={(e) => {
-                                                        const newProjects = [...projectsData];
-                                                        newProjects[index] = {
-                                                            ...project,
-                                                            description: e.target.value,
-                                                        };
-                                                        setProjectsData(newProjects);
-                                                    }}
-                                                    rows={2}
-                                                    placeholder="项目描述"
-                                                />
-                                                <Input
-                                                    value={project.url || ""}
-                                                    onChange={(e) => {
-                                                        const newProjects = [...projectsData];
-                                                        newProjects[index] = {
-                                                            ...project,
-                                                            url: e.target.value || null,
-                                                        };
-                                                        setProjectsData(newProjects);
-                                                    }}
-                                                    placeholder="项目链接（可选）"
-                                                />
-                                                <Input
-                                                    value={project.imageUrl || ""}
-                                                    onChange={(e) => {
-                                                        const newProjects = [...projectsData];
-                                                        newProjects[index] = {
-                                                            ...project,
-                                                            imageUrl: e.target.value || null,
-                                                        };
-                                                        setProjectsData(newProjects);
-                                                    }}
-                                                    placeholder="图片 URL（可选）"
-                                                />
-                                                <Input
-                                                    value={project.tags.join(", ")}
-                                                    onChange={(e) => {
-                                                        const newProjects = [...projectsData];
-                                                        newProjects[index] = {
-                                                            ...project,
-                                                            tags: e.target.value
-                                                                .split(",")
-                                                                .map((t) => t.trim())
-                                                                .filter(Boolean),
-                                                        };
-                                                        setProjectsData(newProjects);
-                                                    }}
-                                                    placeholder="标签（用逗号分隔）"
-                                                />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                            <Button asChild variant="outline" className="mb-4">
+                                <a href="/dashboard/profile">前往个人信息页面</a>
+                            </Button>
+                            <div className="pt-4 border-t">
+                                {projectsLoading ? (
+                                    <div className="flex items-center justify-center py-4">
+                                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                                    </div>
+                                ) : userProjects.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground">
+                                        暂无项目，请先添加项目
+                                    </p>
+                                ) : (
+                                    <Button
+                                        type="button"
+                                        onClick={() => setProjectsConfigOpen(true)}
+                                        className="w-full"
+                                    >
+                                        配置展示项目 ({userProjects.length} 个可用)
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>
                 <DialogFooter>
-                    <Button
-                        variant="outline"
-                        onClick={() => onOpenChange(false)}
-                        disabled={isPending}
-                    >
-                        取消
-                    </Button>
-                    <Button onClick={handleSubmit} disabled={isPending}>
-                        {isPending ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                保存中...
-                            </>
-                        ) : (
-                            "保存"
-                        )}
-                    </Button>
+                    {module.type === "bio" || module.type === "projects" ? (
+                        // bio 和 projects 模块只显示关闭按钮，因为使用配置弹窗
+                        <Button
+                            variant="outline"
+                            onClick={() => onOpenChange(false)}
+                        >
+                            关闭
+                        </Button>
+                    ) : (
+                        // skills 和 links 模块显示保存按钮
+                        <>
+                            <Button
+                                variant="outline"
+                                onClick={() => onOpenChange(false)}
+                                disabled={isPending}
+                            >
+                                取消
+                            </Button>
+                            <Button onClick={handleSubmit} disabled={isPending}>
+                                {isPending ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        保存中...
+                                    </>
+                                ) : (
+                                    "保存"
+                                )}
+                            </Button>
+                        </>
+                    )}
                 </DialogFooter>
             </DialogContent>
 
@@ -433,6 +381,15 @@ export function ModuleEditDialog({ module, open, onOpenChange, onSuccess }: Modu
                 module={module}
                 open={bioConfigOpen}
                 onOpenChange={setBioConfigOpen}
+                onSuccess={onSuccess}
+            />
+
+            {/* Projects Module Config Dialog */}
+            <ProjectsModuleConfigDialog
+                module={module}
+                userProjects={userProjects}
+                open={projectsConfigOpen}
+                onOpenChange={setProjectsConfigOpen}
                 onSuccess={onSuccess}
             />
         </Dialog>

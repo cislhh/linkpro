@@ -10,7 +10,8 @@ import { LayoutGrid } from "@/components/features/layout-editor";
 import { useLayoutStore } from "@/stores/layout-store";
 import { getModules } from "@/actions/module-actions";
 import { getUserLinks } from "@/actions/link-actions";
-import type { PageModule, Link as LinkType } from "@/types";
+import { getUserProfile } from "@/actions/user-actions";
+import type { PageModule, Link as LinkType, Project } from "@/types";
 import { toast } from "sonner";
 
 /**
@@ -28,6 +29,7 @@ export default function LayoutEditorPage() {
     const { data: session } = useSession();
     const [modules, setModules] = useState<PageModule[]>([]);
     const [links, setLinks] = useState<LinkType[]>([]);
+    const [userProjects, setUserProjects] = useState<Project[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -45,9 +47,10 @@ export default function LayoutEditorPage() {
 
             try {
                 setIsLoading(true);
-                const [modulesResult, linksResult] = await Promise.all([
+                const [modulesResult, linksResult, profileResult] = await Promise.all([
                     getModules(),
                     getUserLinks(),
+                    getUserProfile(),
                 ]);
 
                 if (isMounted) {
@@ -59,6 +62,10 @@ export default function LayoutEditorPage() {
 
                     if (linksResult.success) {
                         setLinks(linksResult.data);
+                    }
+
+                    if (profileResult.success && profileResult.data.projects) {
+                        setUserProjects(profileResult.data.projects);
                     }
                 }
             } catch (error) {
@@ -157,6 +164,7 @@ export default function LayoutEditorPage() {
                         <LayoutGrid
                             modules={modules}
                             links={links}
+                            userProjects={userProjects}
                             isEditing={true}
                             cols={gridCols}
                         />
