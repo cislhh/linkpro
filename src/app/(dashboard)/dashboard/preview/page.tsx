@@ -1,22 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Eye, Smartphone, RefreshCw, LayoutGrid, Link as LinkIcon } from "lucide-react";
+import { Eye, Smartphone, RefreshCw, LayoutGrid, Link as LinkIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LivePreview, LayoutPreview } from "@/components/features/preview";
 import { useEditorStore } from "@/stores/editor-store";
+import { getUserProfile } from "@/actions/user-actions";
 
 type PreviewMode = "links" | "layout";
 
 /**
  * Preview Page
- * 
+ *
  * Displays a real-time preview of the user's public page.
  * Mobile-only mode - optimized for mobile devices.
  * Supports both links-only view and full layout view.
- * 
+ *
  * Requirements: 4.1, 4.2, 4.3, 4.4
  * Requirements: 16.1 - Display layout result in preview page
  */
@@ -24,13 +25,77 @@ export default function PreviewPage() {
     const [previewMode, setPreviewMode] = useState<PreviewMode>("layout");
     const { data: session } = useSession();
     const { links, theme } = useEditorStore();
+    const [userData, setUserData] = useState<{
+        name: string | null;
+        bio: string | null;
+        avatarUrl: string | null;
+        phone: string | null;
+        contact: string | null;
+    } | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
 
-    // Get user info from session
-    const userName = session?.user?.name;
-    const userBio = (session?.user as any)?.bio;
-    const userAvatar = session?.user?.image;
-    const userPhone = (session?.user as any)?.phone;
-    const userContact = (session?.user as any)?.contact;
+    // Load user profile on mount
+    useEffect(() => {
+        let isMounted = true;
+
+        // Skip if no session
+        if (!session?.user?.id) {
+            console.log("[PreviewPage] No session, skipping load");
+            setIsLoading(false);
+            return;
+        }
+
+        console.log("[PreviewPage] Starting user data load...");
+
+        async function loadUserData() {
+            try {
+                setIsLoading(true);
+                const result = await getUserProfile();
+
+                console.log("[PreviewPage] User data loaded:", result.success ? "success" : "failed");
+
+                if (isMounted && result.success) {
+                    setUserData({
+                        name: result.data.name || null,
+                        bio: result.data.bio || null,
+                        avatarUrl: result.data.avatarUrl || null,
+                        phone: result.data.phone || null,
+                        contact: result.data.contact || null,
+                    });
+                }
+            } catch (error) {
+                console.error("[PreviewPage] Failed to load user profile:", error);
+            } finally {
+                if (isMounted) {
+                    console.log("[PreviewPage] Setting isLoading false");
+                    setIsLoading(false);
+                }
+            }
+        }
+
+        loadUserData();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [session?.user?.id]); // 每次 session 变化时重新加载
+
+    // Show loading state
+    if (isLoading) {
+        return (
+            <div className="space-y-6">
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">预览页面</h1>
+                    <p className="text-muted-foreground">实时预览你的个人主页效果</p>
+                </div>
+                <Card>
+                    <CardContent className="flex items-center justify-center py-12">
+                        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-6">
@@ -129,18 +194,19 @@ export default function PreviewPage() {
                     <div className="rounded-lg bg-muted/30 p-6 flex justify-center">
                         {previewMode === "layout" ? (
                             <LayoutPreview
-                                userName={userName}
-                                userBio={userBio}
-                                userAvatar={userAvatar}
-                                userPhone={userPhone}
-                                userContact={userContact}
+                                userName={userData?.name}
+                                userBio={userData?.bio}
+                                userAvatar={userData?.avatarUrl}
+                                userPhone={userData?.phone}
+                                userContact={userData?.contact}
                                 deviceMode="mobile"
+                                isLoading={isLoading}
                             />
                         ) : (
                             <LivePreview
-                                userName={userName}
-                                userBio={userBio}
-                                userAvatar={userAvatar}
+                                userName={userData?.name}
+                                userBio={userData?.bio}
+                                userAvatar={userData?.avatarUrl}
                                 deviceMode="mobile"
                             />
                         )}

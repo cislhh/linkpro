@@ -57,6 +57,14 @@ export const bioModuleDataSchema = z.object({
   name: z.string().max(100, 'Name too long'),
   bio: z.string().max(500, 'Bio too long'),
   avatar: z.string().url('Invalid avatar URL').nullable().optional(),
+  // Field visibility configuration - optional, defaults to all visible
+  visibleFields: z.object({
+    name: z.boolean().default(true),
+    bio: z.boolean().default(true),
+    avatar: z.boolean().default(true),
+    phone: z.boolean().default(true),
+    contact: z.boolean().default(true),
+  }).optional(),
 });
 
 // Skills module data schema

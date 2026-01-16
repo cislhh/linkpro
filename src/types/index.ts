@@ -128,6 +128,17 @@ export interface BioModuleData {
   name: string;
   bio: string;
   avatar: string | null;
+  // Field visibility configuration - controls which fields are displayed
+  visibleFields?: BioVisibleFields;
+}
+
+// Bio module field visibility configuration
+export interface BioVisibleFields {
+  name: boolean;        // Show/hide name
+  bio: boolean;         // Show/hide bio description
+  avatar: boolean;      // Show/hide avatar
+  phone: boolean;       // Show/hide phone number
+  contact: boolean;     // Show/hide contact info
 }
 
 // Skills module data - skill tags cloud

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useLayoutStore } from "@/stores/layout-store";
 import { useEditorStore } from "@/stores/editor-store";
@@ -10,7 +10,7 @@ import { ModuleCard } from "@/components/features/layout-editor/module-card";
 import { getThemeStyles } from "./live-preview";
 import { cn } from "@/lib/utils";
 import type { PageModule, Link, LayoutItem, DeviceMode, ThemeType } from "@/types";
-import { Loader2, User } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 interface LayoutPreviewProps {
     /** Device mode for preview (always mobile) */
@@ -27,6 +27,8 @@ interface LayoutPreviewProps {
     userPhone?: string | null;
     /** User contact */
     userContact?: string | null;
+    /** External loading state from parent component */
+    isLoading?: boolean;
 }
 
 /**
@@ -46,6 +48,7 @@ export function LayoutPreview({
     userAvatar,
     userPhone,
     userContact,
+    isLoading: externalLoading,
 }: LayoutPreviewProps) {
     const { data: session } = useSession();
     const { theme } = useEditorStore();
@@ -54,29 +57,51 @@ export function LayoutPreview({
     const { setModules } = useLayoutStore();
     const [links, setLinks] = useState<Link[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const hasLoaded = useRef(false);
 
     // Load modules and links on mount
     useEffect(() => {
-        // 防止重复加载
-        if (hasLoaded.current) return;
-        if (!session?.user?.id) return;
-
-        hasLoaded.current = true;
-
         let isMounted = true;
+        let timeoutId: NodeJS.Timeout;
 
         async function loadData() {
+            // 如果没有 session，不卡住 loading
+            if (!session?.user?.id) {
+                console.log("[LayoutPreview] No session, skipping load");
+                setIsLoading(false);
+                return;
+            }
+
+            // 添加超时保护，10秒后强制结束 loading
+            timeoutId = setTimeout(() => {
+                if (isMounted) {
+                    console.error("[LayoutPreview] Loading timeout!");
+                    setIsLoading(false);
+                }
+            }, 10000);
+
             try {
+                console.log("[LayoutPreview] Starting data load...");
                 setIsLoading(true);
+
                 const [modulesResult, linksResult] = await Promise.all([
                     getModules(),
                     getUserLinks(),
                 ]);
 
+                console.log("[LayoutPreview] Data loaded:", {
+                    modules: modulesResult.success ? modulesResult.data.length : 'failed',
+                    links: linksResult.success ? linksResult.data.length : 'failed'
+                });
+
                 if (isMounted) {
                     if (modulesResult.success) {
-                        await setModules(modulesResult.data);
+                        console.log("[LayoutPreview] Calling setModules with", modulesResult.data.length, "modules");
+                        // 不等待 setModules 完成，避免阻塞
+                        setModules(modulesResult.data).catch(err =>
+                            console.error("[LayoutPreview] setModules error:", err)
+                        );
+                    } else {
+                        console.error("[LayoutPreview] modulesResult failed:", modulesResult.error);
                     }
 
                     if (linksResult.success) {
@@ -84,9 +109,11 @@ export function LayoutPreview({
                     }
                 }
             } catch (error) {
-                console.error("Failed to load data:", error);
+                console.error("[LayoutPreview] Failed to load data:", error);
             } finally {
+                clearTimeout(timeoutId);
                 if (isMounted) {
+                    console.log("[LayoutPreview] Setting isLoading false");
                     setIsLoading(false);
                 }
             }
@@ -96,6 +123,7 @@ export function LayoutPreview({
 
         return () => {
             isMounted = false;
+            if (timeoutId) clearTimeout(timeoutId);
         };
     }, [session?.user?.id]); // 移除 setModules 依赖，避免无限循环
 
@@ -105,7 +133,8 @@ export function LayoutPreview({
     // Get theme styles
     const themeStyles = getThemeStyles(theme);
 
-    if (isLoading) {
+    // Show loading state (either external or internal)
+    if (externalLoading || isLoading) {
         return (
             <div
                 className={cn(
@@ -140,39 +169,6 @@ export function LayoutPreview({
                     themeStyles.background
                 )}
             >
-                {/* Profile Header */}
-                <div className="flex flex-col items-center px-6 py-8 text-center">
-                    {/* Avatar */}
-                    <div
-                        className={cn(
-                            "mb-4 flex h-20 w-20 items-center justify-center overflow-hidden rounded-full",
-                            themeStyles.avatar
-                        )}
-                    >
-                        {userAvatar ? (
-                            <img
-                                src={userAvatar}
-                                alt={userName || "User avatar"}
-                                className="h-full w-full object-cover"
-                            />
-                        ) : (
-                            <User className={cn("h-10 w-10", themeStyles.avatarIcon)} />
-                        )}
-                    </div>
-
-                    {/* Name */}
-                    <h1 className={cn("text-xl font-bold", themeStyles.text)}>
-                        {userName || "Your Name"}
-                    </h1>
-
-                    {/* Bio */}
-                    {userBio && (
-                        <p className={cn("mt-2 max-w-xs text-sm opacity-80", themeStyles.text)}>
-                            {userBio}
-                        </p>
-                    )}
-                </div>
-
                 {/* Module Layout Grid */}
                 {modules.length === 0 ? (
                     <div className="px-6 pb-8">

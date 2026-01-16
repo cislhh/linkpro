@@ -17,6 +17,7 @@ import { Loader2, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { updateModule } from "@/actions/module-actions";
 import { getUserLinks } from "@/actions/link-actions";
+import { BioModuleConfigDialog } from "./bio-module-config-dialog";
 import type { PageModule, ModuleData, Link, Project, BioModuleData, SkillsModuleData, LinksModuleData, ProjectsModuleData } from "@/types";
 
 interface ModuleEditDialogProps {
@@ -51,6 +52,7 @@ export function ModuleEditDialog({ module, open, onOpenChange, onSuccess }: Modu
     const [isPending, setIsPending] = useState(false);
     const [userLinks, setUserLinks] = useState<Link[]>([]);
     const [linksLoading, setLinksLoading] = useState(false);
+    const [bioConfigOpen, setBioConfigOpen] = useState(false);
 
     // Form state for each module type
     const [bioData, setBioData] = useState({ name: "", bio: "", avatar: "" });
@@ -193,13 +195,27 @@ export function ModuleEditDialog({ module, open, onOpenChange, onSuccess }: Modu
                 </DialogHeader>
                 <div className="space-y-4 py-4">
                     {module.type === "bio" && (
-                        <div className="py-8 text-center">
-                            <p className="text-muted-foreground mb-4">
-                                个人简介信息请在"个人信息"页面编辑
-                            </p>
-                            <Button asChild variant="outline">
+                        <div className="py-8 text-center space-y-4">
+                            <div>
+                                <p className="text-muted-foreground mb-2">
+                                    个人简介的数据来自"个人信息"页面
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    您可以在此配置哪些字段在页面上显示
+                                </p>
+                            </div>
+                            <Button asChild variant="outline" className="mb-4">
                                 <a href="/dashboard/profile">前往个人信息页面</a>
                             </Button>
+                            <div className="pt-4 border-t">
+                                <Button
+                                    type="button"
+                                    onClick={() => setBioConfigOpen(true)}
+                                    className="w-full"
+                                >
+                                    配置显示设置
+                                </Button>
+                            </div>
                         </div>
                     )}
 
@@ -411,6 +427,14 @@ export function ModuleEditDialog({ module, open, onOpenChange, onSuccess }: Modu
                     </Button>
                 </DialogFooter>
             </DialogContent>
+
+            {/* Bio Module Config Dialog */}
+            <BioModuleConfigDialog
+                module={module}
+                open={bioConfigOpen}
+                onOpenChange={setBioConfigOpen}
+                onSuccess={onSuccess}
+            />
         </Dialog>
     );
 }
