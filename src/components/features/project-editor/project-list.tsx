@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
     DndContext,
     closestCenter,
@@ -23,6 +23,7 @@ import { updateUserProjects } from "@/actions/user-actions";
 import { ProjectItem } from "./project-item";
 import { ProjectForm } from "./project-form";
 import type { Project } from "@/types";
+import { useUserStore } from "@/stores/user-store";
 
 /**
  * ProjectList Component
@@ -33,11 +34,13 @@ import type { Project } from "@/types";
  * Requirements: Project management in profile page
  */
 export function ProjectList() {
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
     const [isFormOpen, setIsFormOpen] = useState(false);
     const [editingProject, setEditingProject] = useState<Project | null>(null);
+
+    // 从 store 读取 projects
+    const projects = useUserStore((state) => state.projects);
+    const setProjects = useUserStore((state) => state.setProjects);
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -45,14 +48,6 @@ export function ProjectList() {
             coordinateGetter: sortableKeyboardCoordinates,
         })
     );
-
-    // Load projects on mount (from session data)
-    useEffect(() => {
-        // Projects will be loaded via server component props
-        // For now, initialize with empty array
-        setProjects([]);
-        setIsLoading(false);
-    }, []);
 
     const handleDragEnd = async (event: DragEndEvent) => {
         const { active, over } = event;
@@ -139,11 +134,7 @@ export function ProjectList() {
                 </Button>
             </div>
 
-            {isLoading ? (
-                <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-            ) : projects.length === 0 ? (
+            {projects.length === 0 ? (
                 <div className="rounded-lg border border-dashed p-8 text-center">
                     <FolderGit2 className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
                     <p className="text-muted-foreground">

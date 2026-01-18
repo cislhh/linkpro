@@ -2,14 +2,21 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Link2, FolderGit2 } from "lucide-react";
 import { LinkList } from "@/components/features/link-editor";
 import { ProjectList } from "@/components/features/project-editor";
 import { ProfileForm } from "@/components/features/profile";
 import { useEditorStore } from "@/stores/editor-store";
 import { getUserLinks } from "@/actions/link-actions";
-
+import { getUserProfile } from "@/actions/user-actions";
+import { useUserStore } from "@/stores/user-store";
 /**
  * Profile Page - Personal Information Management
  *
@@ -19,120 +26,134 @@ import { getUserLinks } from "@/actions/link-actions";
  * Requirements: Profile editing, Link management
  */
 export default function ProfilePage() {
-    const { data: session } = useSession();
-    const { setLinks } = useEditorStore();
-    const [isLoading, setIsLoading] = useState(true);
+  const { data: session } = useSession();
+  const setLinks = useEditorStore((state) => state.setLinks);
+  const setUser = useUserStore((state) => state.setUser);
+  const [isLoading, setIsLoading] = useState(true);
 
-    // Load links on mount
-    useEffect(() => {
-        let isMounted = true;
+  // Load links on mount
+  useEffect(() => {
+    let isMounted = true;
 
-        async function loadLinks() {
-            if (!session?.user?.id) return;
+    async function loadUserData() {
+      if (!session?.user?.id) return;
 
-            try {
-                setIsLoading(true);
-                const result = await getUserLinks();
-                if (isMounted && result.success) {
-                    setLinks(result.data);
-                }
-            } catch (error) {
-                console.error("Failed to load links:", error);
-            } finally {
-                if (isMounted) {
-                    setIsLoading(false);
-                }
-            }
+      try {
+        setIsLoading(true);
+
+        // 并行加载 links 和用户资料
+        const [linksResult, profileResult] = await Promise.all([
+          getUserLinks(),
+          getUserProfile(),
+        ]);
+
+        if (isMounted) {
+          // 更新 links 到 editor-store
+          if (linksResult.success) {
+            setLinks(linksResult.data);
+          }
+
+          // 更新 profile 和 projects 到 user-store
+          if (profileResult.success) {
+            const { name, bio, avatarUrl, phone, contact, projects } =
+              profileResult.data;
+            setUser({
+              profile: { name, bio, avatarUrl, phone, contact },
+              projects: projects || [],
+            });
+          }
         }
+      } catch (error) {
+        console.error("Failed to load user data:", error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    }
 
-        loadLinks();
+    loadUserData();
 
-        return () => {
-            isMounted = false;
-        };
-    }, [session?.user?.id, setLinks]);
+    return () => {
+      isMounted = false;
+    };
+  }, [session?.user?.id, setLinks, setUser]);
 
-    return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">个人信息</h1>
-                <p className="text-muted-foreground">
-                    管理个人资料和链接
-                </p>
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-bold tracking-tight">个人信息</h1>
+        <p className="text-muted-foreground">管理个人资料和链接</p>
+      </div>
+
+      <div className="grid gap-6">
+        {/* Profile Form */}
+        <ProfileForm />
+
+        {/* Account Info Card */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Link2 className="h-5 w-5" />
+              <CardTitle>账户信息</CardTitle>
             </div>
-
-            <div className="grid gap-6">
-                {/* Profile Form */}
-                <ProfileForm />
-
-                {/* Account Info Card */}
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center gap-2">
-                            <Link2 className="h-5 w-5" />
-                            <CardTitle>账户信息</CardTitle>
-                        </div>
-                        <CardDescription>
-                            您的账户基本信息（不可修改）
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-2">
-                            <div>
-                                <span className="text-sm font-medium">用户名：</span>
-                                <span className="text-sm text-muted-foreground">@{session?.user?.username || "未设置"}</span>
-                            </div>
-                            <div>
-                                <span className="text-sm font-medium">邮箱：</span>
-                                <span className="text-sm text-muted-foreground">{session?.user?.email || "未设置"}</span>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* Link Management Card */}
-                {isLoading ? (
-                    <Card>
-                        <CardContent className="py-8">
-                            <div className="text-center text-muted-foreground">
-                                加载中...
-                            </div>
-                        </CardContent>
-                    </Card>
-                ) : (
-                    <Card>
-                        <CardHeader>
-                            <div className="flex items-center gap-2">
-                                <Link2 className="h-5 w-5" />
-                                <CardTitle>链接管理</CardTitle>
-                            </div>
-                            <CardDescription>
-                                添加、编辑和管理您的社交链接
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            <LinkList />
-                        </CardContent>
-                    </Card>
-                )}
-
-                {/* Project Management Card */}
-                <Card>
-                    <CardHeader>
-                        <div className="flex items-center gap-2">
-                            <FolderGit2 className="h-5 w-5" />
-                            <CardTitle>项目管理</CardTitle>
-                        </div>
-                        <CardDescription>
-                            添加、编辑和管理您的个人项目
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ProjectList />
-                    </CardContent>
-                </Card>
+            <CardDescription>您的账户基本信息（不可修改）</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <div>
+                <span className="text-sm font-medium">用户名：</span>
+                <span className="text-sm text-muted-foreground">
+                  @{session?.user?.username || "未设置"}
+                </span>
+              </div>
+              <div>
+                <span className="text-sm font-medium">邮箱：</span>
+                <span className="text-sm text-muted-foreground">
+                  {session?.user?.email || "未设置"}
+                </span>
+              </div>
             </div>
-        </div>
-    );
+          </CardContent>
+        </Card>
+
+        {/* Link Management Card */}
+        {isLoading ? (
+          <Card>
+            <CardContent className="py-8">
+              <div className="text-center text-muted-foreground">加载中...</div>
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Link2 className="h-5 w-5" />
+                <CardTitle>链接管理</CardTitle>
+              </div>
+              <CardDescription>添加、编辑和管理您的社交链接</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <LinkList />
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Project Management Card */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <FolderGit2 className="h-5 w-5" />
+              <CardTitle>项目管理</CardTitle>
+            </div>
+            <CardDescription>添加、编辑和管理您的个人项目</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ProjectList />
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
 }

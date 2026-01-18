@@ -4,22 +4,49 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Loader2, User, Phone, Mail, CheckCircle2, Upload, X } from "lucide-react";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import {
+  Loader2,
+  User,
+  Phone,
+  Mail,
+  CheckCircle2,
+  Upload,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
-import { updateUserProfile, getUserProfile } from "@/actions/user-actions";
+import { updateUserProfile } from "@/actions/user-actions";
 import { uploadAvatar } from "@/actions/upload-actions";
 import { AVATAR_SPEC } from "@/lib/constants";
 import { updateProfileSchema } from "@/lib/validations";
+import { useUserStore } from "@/stores/user-store";
 import type { UpdateProfileInput } from "@/lib/validations";
 
 // Form schema with phone and contact validation
 const profileFormSchema = updateProfileSchema.extend({
-  phone: z.string().regex(/^[+]?[\d\s\-()]*$/, "电话号码格式无效").max(50, "电话号码过长").optional().or(z.literal("")),
+  phone: z
+    .string()
+    .regex(/^[+]?[\d\s\-()]*$/, "电话号码格式无效")
+    .max(50, "电话号码过长")
+    .optional()
+    .or(z.literal("")),
   contact: z.string().max(200, "联系方式过长").optional().or(z.literal("")),
 });
 
@@ -40,9 +67,14 @@ interface ProfileFormProps {
 export function ProfileForm({ onSuccess }: ProfileFormProps) {
   const [isPending, setIsPending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const profile = useUserStore((state) => state.profile);
+  const setUserProfile = useUserStore((state) => state.setUserProfile);
+
+  useEffect(() => {
+    setAvatarPreview(profile.avatarUrl);
+  }, [profile.avatarUrl]);
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
@@ -53,54 +85,15 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
       phone: "",
       contact: "",
     },
+    values: {
+      name: profile.name || "",
+      bio: profile.bio || "",
+      avatarUrl: profile.avatarUrl || "",
+      phone: profile.phone || "",
+      contact: profile.contact || "",
+    },
     mode: "onBlur",
   });
-
-  /**
-   * Load user profile data on mount
-   */
-  useEffect(() => {
-    let isMounted = true;
-
-    async function loadProfile() {
-      try {
-        setIsLoading(true);
-        const result = await getUserProfile();
-
-        if (isMounted) {
-          if (result.success) {
-            const data = result.data;
-            form.reset({
-              name: data.name || "",
-              bio: data.bio || "",
-              avatarUrl: data.avatarUrl || "",
-              phone: data.phone || "",
-              contact: data.contact || "",
-            });
-            setAvatarPreview(data.avatarUrl);
-          } else {
-            toast.error("加载失败", { description: result.error });
-          }
-        }
-      } catch (error) {
-        console.error("Failed to load profile:", error);
-        if (isMounted) {
-          toast.error("加载失败", { description: "无法加载个人信息" });
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    }
-
-    loadProfile();
-
-    return () => {
-      isMounted = false;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleAvatarUpload = async (file: File) => {
     // Validate file size
@@ -112,7 +105,9 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
     }
 
     // Validate file type
-    const isValidType = AVATAR_SPEC.allowedFormats.some(format => format === file.type);
+    const isValidType = AVATAR_SPEC.allowedFormats.some(
+      (format) => format === file.type
+    );
     if (!isValidType) {
       toast.error("不支持的文件格式", {
         description: "支持的格式: JPG, PNG, WebP",
@@ -137,6 +132,10 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
         } as UpdateProfileInput);
 
         if (updateResult.success) {
+          // 更新 store
+          const { name, bio, avatarUrl, phone, contact } = updateResult.data;
+          setUserProfile({ name, bio, avatarUrl, phone, contact });
+
           // Update form with returned data
           form.reset({
             name: updateResult.data.name || "",
@@ -180,6 +179,9 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
       const result = await updateUserProfile(data as UpdateProfileInput);
 
       if (result.success) {
+        // 更新 store
+        const { name, bio, avatarUrl, phone, contact } = result.data;
+        setUserProfile({ name, bio, avatarUrl, phone, contact });
         // Update form with returned data (preserves all values)
         form.reset({
           name: result.data.name || "",
@@ -211,16 +213,6 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
     }
   };
 
-  if (isLoading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <Card>
       <CardHeader>
@@ -228,9 +220,7 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
           <User className="h-5 w-5" />
           <CardTitle>个人资料</CardTitle>
         </div>
-        <CardDescription>
-          更新您的个人信息和联系方式
-        </CardDescription>
+        <CardDescription>更新您的个人信息和联系方式</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -297,9 +287,9 @@ export function ProfileForm({ onSuccess }: ProfileFormProps) {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground">
-                推荐尺寸: {AVATAR_SPEC.recommendedSize.width}x{AVATAR_SPEC.recommendedSize.height}px •
-                最大文件大小: {AVATAR_SPEC.maxSize / 1024 / 1024}MB •
-                格式: JPG, PNG, WebP
+                推荐尺寸: {AVATAR_SPEC.recommendedSize.width}x
+                {AVATAR_SPEC.recommendedSize.height}px • 最大文件大小:{" "}
+                {AVATAR_SPEC.maxSize / 1024 / 1024}MB • 格式: JPG, PNG, WebP
               </p>
             </div>
 

@@ -94,7 +94,10 @@ export async function registerUser(
     return { success: true, data: user };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return { success: false, error: error.issues[0]?.message ?? "Validation failed" };
+      return {
+        success: false,
+        error: error.issues[0]?.message ?? "Validation failed",
+      };
     }
     console.error("registerUser error:", error);
     return { success: false, error: "Failed to register user" };
@@ -157,9 +160,15 @@ export async function updateUserProfile(
         name: validated.name,
         bio: validated.bio,
         avatarUrl: validated.avatarUrl === "" ? null : validated.avatarUrl,
-        phone: validated.phone && validated.phone !== "" ? validated.phone : null,
-        contact: validated.contact && validated.contact !== "" ? validated.contact : null,
-        ...(validated.projects !== undefined && { projects: validated.projects }),
+        phone:
+          validated.phone && validated.phone !== "" ? validated.phone : null,
+        contact:
+          validated.contact && validated.contact !== ""
+            ? validated.contact
+            : null,
+        ...(validated.projects !== undefined && {
+          projects: validated.projects,
+        }),
       },
       select: {
         id: true,
@@ -180,7 +189,10 @@ export async function updateUserProfile(
     return { success: true, data: user };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return { success: false, error: error.issues[0]?.message ?? "Validation failed" };
+      return {
+        success: false,
+        error: error.issues[0]?.message ?? "Validation failed",
+      };
     }
     console.error("updateUserProfile error:", error);
     return { success: false, error: "Failed to update profile" };
@@ -229,7 +241,10 @@ export async function updateUserTheme(
     return { success: true, data: user };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return { success: false, error: error.issues[0]?.message ?? "Validation failed" };
+      return {
+        success: false,
+        error: error.issues[0]?.message ?? "Validation failed",
+      };
     }
     console.error("updateUserTheme error:", error);
     return { success: false, error: "Failed to update theme" };
