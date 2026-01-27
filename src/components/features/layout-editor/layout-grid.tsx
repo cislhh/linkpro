@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ResponsiveGridLayout, useContainerWidth } from "react-grid-layout";
 import { useLayoutStore } from "@/stores/layout-store";
-import { ModuleCard } from "./module-card";
+import { WireframeModuleCard } from "./wireframe-module-card";
 import type { PageModule, Link, LayoutItem, Project } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -143,16 +143,19 @@ export function LayoutGrid({
             }}
         >
             <ResponsiveGridLayout {...gridProps}>
-                {modules.map((module) => (
-                    <div key={module.id} className="layout-item">
-                        <ModuleCard
-                            module={module}
-                            links={links}
-                            userProjects={userProjects}
-                            isEditing={isEditing}
-                        />
-                    </div>
-                ))}
+                {modules.map((module) => {
+                    const layoutItem = layout.find((item) => item.i === module.id);
+                    return (
+                        <div key={module.id} className="layout-item">
+                            <WireframeModuleCard
+                                module={module}
+                                isEditing={isEditing}
+                                gridWidth={layoutItem?.w || 1}
+                                gridHeight={layoutItem?.h || 2}
+                            />
+                        </div>
+                    );
+                })}
             </ResponsiveGridLayout>
         </div>
     );

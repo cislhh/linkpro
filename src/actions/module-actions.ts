@@ -413,10 +413,10 @@ export async function saveDeviceLayout(
 
 /**
  * Get device-specific layouts from user profile
- * 
+ *
  * - Checks user authentication
  * - Returns both mobile and desktop layouts
- * 
+ *
  * Requirements: 21.4
  */
 export async function getDeviceLayouts(): Promise<ActionResult<{
@@ -450,5 +450,38 @@ export async function getDeviceLayouts(): Promise<ActionResult<{
   } catch (error) {
     console.error("getDeviceLayouts error:", error);
     return { success: false, error: "Failed to get device layouts" };
+  }
+}
+
+
+/**
+ * Clear all skills modules for the authenticated user
+ *
+ * - Checks user authentication
+ * - Deletes all modules with type='skills'
+ * - Returns count of deleted modules
+ *
+ * Utility function for cleaning up dirty data
+ */
+export async function clearSkillsModules(): Promise<ActionResult<{ count: number }>> {
+  try {
+    // 1. Check authentication
+    const session = await auth();
+    if (!session?.user?.id) {
+      return { success: false, error: "Authentication required" };
+    }
+
+    // 2. Delete all skills modules for the user
+    const result = await prisma.pageModule.deleteMany({
+      where: {
+        userId: session.user.id,
+        type: "skills",
+      },
+    });
+
+    return { success: true, data: { count: result.count } };
+  } catch (error) {
+    console.error("clearSkillsModules error:", error);
+    return { success: false, error: "Failed to clear skills modules" };
   }
 }

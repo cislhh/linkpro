@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Grid3X3, Save, Eye, Loader2, Smartphone } from "lucide-react";
 import { LayoutGrid } from "@/components/features/layout-editor";
+import { PhoneFrame, PhoneFrameContent } from "@/components/ui/phone-frame";
 import { useLayoutStore } from "@/stores/layout-store";
 import { getModules } from "@/actions/module-actions";
 import { getUserLinks } from "@/actions/link-actions";
@@ -161,13 +162,19 @@ export default function LayoutEditorPage() {
                             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                         </div>
                     ) : (
-                        <LayoutGrid
-                            modules={modules}
-                            links={links}
-                            userProjects={userProjects}
-                            isEditing={true}
-                            cols={gridCols}
-                        />
+                        <div className="flex justify-center">
+                            <PhoneFrame variant="bordered-only">
+                                <PhoneFrameContent paddingTop="50px" paddingBottom="24px">
+                                    <LayoutGrid
+                                        modules={modules}
+                                        links={links}
+                                        userProjects={userProjects}
+                                        isEditing={true}
+                                        cols={gridCols}
+                                    />
+                                </PhoneFrameContent>
+                            </PhoneFrame>
+                        </div>
                     )}
                 </CardContent>
             </Card>

@@ -169,12 +169,14 @@ export function ModuleEditDialog({ module, open, onOpenChange, onSuccess }: Modu
                 };
                 break;
             case "skills":
+                // 支持中英文逗号分隔: "," 和 "，"
+                // 同时支持换行符分隔，提升用户输入体验
                 updatedData = {
                     type: "skills",
                     skills: skillsData.skills
-                        .split(",")
+                        .split(/[,，\n]/)
                         .map((s) => s.trim())
-                        .filter(Boolean),
+                        .filter((s) => s.length > 0),
                 };
                 break;
             case "links":
@@ -252,10 +254,11 @@ export function ModuleEditDialog({ module, open, onOpenChange, onSuccess }: Modu
                                 value={skillsData.skills}
                                 onChange={(e) => setSkillsData({ skills: e.target.value })}
                                 rows={4}
-                                placeholder="React, TypeScript, Node.js, ..."
+                                placeholder="React&#10;TypeScript&#10;Node.js&#10;&#10;或使用逗号: React, TypeScript, Node.js"
+                                className="resize-none"
                             />
                             <p className="text-xs text-muted-foreground">
-                                用逗号分隔多个技能标签
+                                支持多种分隔方式：换行、英文逗号(,)或中文逗号(，)
                             </p>
                         </div>
                     )}

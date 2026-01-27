@@ -91,7 +91,7 @@ export async function registerUser(
       },
     });
 
-    return { success: true, data: user };
+    return { success: true, data: user as unknown as UserResult };
   } catch (error) {
     if (error instanceof z.ZodError) {
       return {
@@ -129,7 +129,7 @@ export async function getUserByEmail(
       },
     });
 
-    return { success: true, data: user };
+    return { success: true, data: user as unknown as UserResult };
   } catch (error) {
     console.error("getUserByEmail error:", error);
     return { success: false, error: "Failed to retrieve user" };
@@ -167,7 +167,7 @@ export async function updateUserProfile(
             ? validated.contact
             : null,
         ...(validated.projects !== undefined && {
-          projects: validated.projects,
+          projects: validated.projects as any,
         }),
       },
       select: {
@@ -186,7 +186,7 @@ export async function updateUserProfile(
       },
     });
 
-    return { success: true, data: user };
+    return { success: true, data: user as unknown as UserResult };
   } catch (error) {
     if (error instanceof z.ZodError) {
       return {
@@ -238,7 +238,7 @@ export async function updateUserTheme(
       },
     });
 
-    return { success: true, data: user };
+    return { success: true, data: user as unknown as UserResult };
   } catch (error) {
     if (error instanceof z.ZodError) {
       return {
@@ -284,7 +284,7 @@ export async function getUserProfile(): Promise<ActionResult<UserResult>> {
       return { success: false, error: "用户不存在" };
     }
 
-    return { success: true, data: user };
+    return { success: true, data: user as unknown as UserResult };
   } catch (error) {
     console.error("getUserProfile error:", error);
     return { success: false, error: "获取用户信息失败" };
@@ -329,7 +329,7 @@ export async function updateUserProjects(
       },
     });
 
-    return { success: true, data: user };
+    return { success: true, data: user as unknown as UserResult };
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { success: false, error: error.issues[0]?.message ?? "验证失败" };
