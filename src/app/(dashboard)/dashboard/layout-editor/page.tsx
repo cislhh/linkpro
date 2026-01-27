@@ -5,8 +5,9 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Grid3X3, Save, Eye, Loader2, Smartphone } from "lucide-react";
+import { Grid3X3, Save, Eye, Loader2, Smartphone, LayoutGrid as LayoutGridIcon } from "lucide-react";
 import { LayoutGrid } from "@/components/features/layout-editor";
+import { PageHeader } from "@/components/features/dashboard";
 import { useLayoutStore } from "@/stores/layout-store";
 import { getModules } from "@/actions/module-actions";
 import { getUserLinks } from "@/actions/link-actions";
@@ -106,38 +107,33 @@ export default function LayoutEditorPage() {
 
     return (
         <div className="space-y-6">
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight">布局编辑</h1>
-                    <p className="text-muted-foreground">
-                        拖拽模块自定义页面布局
-                    </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                    {/* Preview Page Link */}
-                    <Button variant="outline" size="sm" asChild>
-                        <Link href="/dashboard/preview">
-                            <Eye className="h-4 w-4 mr-2" />
-                            预览效果
-                        </Link>
-                    </Button>
-
-                    {/* Save Button */}
-                    <Button
-                        size="sm"
-                        onClick={handleSave}
-                        disabled={isSaving}
-                    >
-                        {isSaving ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        ) : (
-                            <Save className="h-4 w-4 mr-2" />
-                        )}
-                        保存布局
-                    </Button>
-                </div>
-            </div>
+            <PageHeader
+                title="布局编辑"
+                description="拖拽模块自定义页面布局"
+                icon={LayoutGridIcon}
+                actions={
+                    <>
+                        <Button variant="outline" size="sm" asChild>
+                            <Link href="/dashboard/preview">
+                                <Eye className="h-4 w-4 mr-2" />
+                                预览效果
+                            </Link>
+                        </Button>
+                        <Button
+                            size="sm"
+                            onClick={handleSave}
+                            disabled={isSaving}
+                        >
+                            {isSaving ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                                <Save className="h-4 w-4 mr-2" />
+                            )}
+                            保存布局
+                        </Button>
+                    </>
+                }
+            />
 
             {/* Mobile Mode Indicator */}
             <div className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm bg-blue-500/10 text-blue-600 border border-blue-500/20">

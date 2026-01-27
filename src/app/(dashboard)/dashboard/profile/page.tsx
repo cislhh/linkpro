@@ -2,17 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Link2, FolderGit2 } from "lucide-react";
+import { Link2, FolderGit2, UserCircle } from "lucide-react";
 import { LinkList } from "@/components/features/link-editor";
 import { ProjectList } from "@/components/features/project-editor";
 import { ProfileForm } from "@/components/features/profile";
+import { PageHeader, DashboardCard } from "@/components/features/dashboard";
 import { useEditorStore } from "@/stores/editor-store";
 import { getUserLinks } from "@/actions/link-actions";
 import { getUserProfile } from "@/actions/user-actions";
@@ -81,78 +75,67 @@ export default function ProfilePage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">个人信息</h1>
-        <p className="text-muted-foreground">管理个人资料和链接</p>
-      </div>
+      {/* Page Header */}
+      <PageHeader
+        title="个人信息"
+        description="管理个人资料和链接"
+        icon={UserCircle}
+      />
 
       <div className="grid gap-6">
         {/* Profile Form */}
         <ProfileForm />
 
         {/* Account Info Card */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <Link2 className="h-5 w-5" />
-              <CardTitle>账户信息</CardTitle>
+        <DashboardCard
+          icon={Link2}
+          title="账户信息"
+          description="您的账户基本信息（不可修改）"
+          variant="default"
+        >
+          <div className="space-y-3">
+            <div className="flex items-center justify-between py-2 border-b border-border/50">
+              <span className="text-sm font-medium">用户名</span>
+              <span className="text-sm text-muted-foreground font-mono">
+                @{session?.user?.username || "未设置"}
+              </span>
             </div>
-            <CardDescription>您的账户基本信息（不可修改）</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <div>
-                <span className="text-sm font-medium">用户名：</span>
-                <span className="text-sm text-muted-foreground">
-                  @{session?.user?.username || "未设置"}
-                </span>
-              </div>
-              <div>
-                <span className="text-sm font-medium">邮箱：</span>
-                <span className="text-sm text-muted-foreground">
-                  {session?.user?.email || "未设置"}
-                </span>
-              </div>
+            <div className="flex items-center justify-between py-2">
+              <span className="text-sm font-medium">邮箱</span>
+              <span className="text-sm text-muted-foreground">
+                {session?.user?.email || "未设置"}
+              </span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </DashboardCard>
 
         {/* Link Management Card */}
         {isLoading ? (
-          <Card>
-            <CardContent className="py-8">
-              <div className="text-center text-muted-foreground">加载中...</div>
-            </CardContent>
-          </Card>
+          <DashboardCard
+            icon={Link2}
+            title="链接管理"
+            description="添加、编辑和管理您的社交链接"
+          >
+            <div className="py-8 text-center text-muted-foreground">加载中...</div>
+          </DashboardCard>
         ) : (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <Link2 className="h-5 w-5" />
-                <CardTitle>链接管理</CardTitle>
-              </div>
-              <CardDescription>添加、编辑和管理您的社交链接</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <LinkList />
-            </CardContent>
-          </Card>
+          <DashboardCard
+            icon={Link2}
+            title="链接管理"
+            description="添加、编辑和管理您的社交链接"
+          >
+            <LinkList />
+          </DashboardCard>
         )}
 
         {/* Project Management Card */}
-        <Card>
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <FolderGit2 className="h-5 w-5" />
-              <CardTitle>项目管理</CardTitle>
-            </div>
-            <CardDescription>添加、编辑和管理您的个人项目</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ProjectList />
-          </CardContent>
-        </Card>
+        <DashboardCard
+          icon={FolderGit2}
+          title="项目管理"
+          description="添加、编辑和管理您的个人项目"
+        >
+          <ProjectList />
+        </DashboardCard>
       </div>
     </div>
   );

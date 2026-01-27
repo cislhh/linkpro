@@ -2,9 +2,11 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ThemePicker } from "@/components/features/theme-selector";
-import { useEditorStore, useTheme } from "@/stores/editor-store";
+import { PageHeader } from "@/components/features/dashboard";
+import { useTheme } from "@/stores/editor-store";
 import { getThemeComponent } from "@/components/themes";
-import type { Link, ThemeType } from "@/types";
+import { Palette } from "lucide-react";
+import type { Link } from "@/types";
 
 /**
  * ThemesPage - 主题设置页面
@@ -71,12 +73,18 @@ export default function ThemesPage() {
 
     return (
         <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">主题设置</h1>
-                <p className="text-muted-foreground">
-                    选择你喜欢的主题风格，预览效果将实时更新
-                </p>
-            </div>
+            <PageHeader
+                title="主题设置"
+                description="选择你喜欢的主题风格，预览效果将实时更新"
+                icon={Palette}
+                stats={[
+                    {
+                        icon: Palette,
+                        label: "当前主题",
+                        value: currentTheme.charAt(0).toUpperCase() + currentTheme.slice(1)
+                    }
+                ]}
+            />
 
             {/* Theme Picker */}
             <Card>
