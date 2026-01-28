@@ -54,7 +54,7 @@ export function LayoutPreview({
     const { data: session } = useSession();
     const { theme } = useEditorStore();
     const { modules, mobileLayout } = useLayoutStore();
-    // 使用 useLayoutActions 获取稳定的函数引用
+    // 直接从 store 获取稳定的函数引用（store actions 的引用永远不会改变）
     const { setModules } = useLayoutStore();
     const [links, setLinks] = useState<Link[]>([]);
     const [userProjects, setUserProjects] = useState<Project[]>([]);

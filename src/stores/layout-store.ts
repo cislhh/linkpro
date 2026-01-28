@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { PageModule, LayoutItem, LayoutEditorState, DeviceMode } from '@/types';
 import { saveDeviceLayout, getDeviceLayouts } from '@/actions/module-actions';
-import { 
+import {
   generateDefaultLayout,
   validateLayout,
   isCustomLayout,
@@ -10,14 +10,14 @@ import {
 
 /**
  * Layout Editor Store - Zustand store for managing the layout editor state
- * 
+ *
  * This store manages:
  * - modules: Array of user's page modules
  * - layout: Current active layout (mobile-only)
  * - mobileLayout: Layout configuration for mobile view
  * - deviceMode: Current device mode (always mobile)
  * - isEditing: Whether the layout editor is in edit mode
- * 
+ *
  * Requirements: 12.1 - Layout Editor
  * Note: Desktop mode has been removed - mobile-only implementation
  */
@@ -98,7 +98,7 @@ export const useLayoutStore = create<LayoutEditorState>((set, get) => ({
   /**
    * Update the layout array (called when user drags/resizes modules)
    * Updates the mobile layout only
-   * 
+   *
    * Note: Desktop layout removed - mobile-only implementation
    */
   updateLayout: (layout: LayoutItem[]) => {
@@ -107,7 +107,7 @@ export const useLayoutStore = create<LayoutEditorState>((set, get) => ({
 
   /**
    * Set the device mode (kept for API compatibility but always uses mobile)
-   * 
+   *
    * Note: Desktop mode removed - always uses mobile layout
    */
   setDeviceMode: (mode: DeviceMode) => {
@@ -119,7 +119,7 @@ export const useLayoutStore = create<LayoutEditorState>((set, get) => ({
   /**
    * Save the current layout to the user profile
    * Saves only the mobile layout
-   * 
+   *
    * Requirements: 12.4 - Persist position and size data for all modules
    * Note: Desktop layout saving removed - mobile-only implementation
    */
@@ -151,18 +151,18 @@ export const useDeviceMode = () => useLayoutStore((state) => state.deviceMode);
 export const useMobileLayout = () => useLayoutStore((state) => state.mobileLayout);
 export const useDesktopLayout = () => useLayoutStore((state) => state.desktopLayout);
 
-// Action hooks
-export const useLayoutActions = () => useLayoutStore((state) => ({
-  setModules: state.setModules,
-  updateLayout: state.updateLayout,
-  saveLayout: state.saveLayout,
-  toggleEditing: state.toggleEditing,
-  setDeviceMode: state.setDeviceMode,
-}));
+// Action hooks - 分别导出每个 action selector 以获得稳定的引用
+// 这是避免无限循环的正确方式：每个函数的引用都是稳定的
+// 推荐在组件中直接使用这些单独的 hooks
+export const useSetModules = () => useLayoutStore((state) => state.setModules);
+export const useUpdateLayout = () => useLayoutStore((state) => state.updateLayout);
+export const useSaveLayout = () => useLayoutStore((state) => state.saveLayout);
+export const useToggleEditing = () => useLayoutStore((state) => state.toggleEditing);
+export const useSetDeviceMode = () => useLayoutStore((state) => state.setDeviceMode);
 
 // Re-export layout template utilities for convenience
-export { 
-  generateDefaultLayout, 
+export {
+  generateDefaultLayout,
   getDefaultLayoutForNewModule,
   validateLayout,
   isCustomLayout,

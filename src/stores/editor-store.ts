@@ -3,16 +3,16 @@ import type { Link, ThemeType, EditorState } from '@/types';
 
 /**
  * Editor Store - Zustand store for managing the link editor state
- * 
+ *
  * This store manages:
  * - links: Array of user's links
  * - theme: Currently selected theme
  * - previewMode: Whether preview mode is active
  * - isDirty: Whether there are unsaved changes
- * 
+ *
  * Requirements: 4.1, 4.2, 4.3 - Real-time Preview
  */
-export const useEditorStore = create<EditorState>((set, get) => ({
+export const useEditorStore = create<EditorState>((set) => ({
   // State
   links: [],
   theme: 'aurora' as ThemeType,
@@ -33,7 +33,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       createdAt: new Date(),
       updatedAt: new Date(),
     };
-    
+
     set((state) => ({
       links: [...state.links, newLink],
       isDirty: true,
@@ -72,21 +72,21 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set((state) => {
       const links = [...state.links];
       const removed = links.splice(startIndex, 1)[0];
-      
+
       // Guard against invalid indices
       if (!removed) {
         return state;
       }
-      
+
       links.splice(endIndex, 0, removed);
-      
+
       // Update order property for all links
       const reorderedLinks = links.map((link, index) => ({
         ...link,
         order: index,
         updatedAt: new Date(),
       }));
-      
+
       return {
         links: reorderedLinks,
         isDirty: true,
@@ -129,14 +129,14 @@ export const useTheme = () => useEditorStore((state) => state.theme);
 export const usePreviewMode = () => useEditorStore((state) => state.previewMode);
 export const useIsDirty = () => useEditorStore((state) => state.isDirty);
 
-// Action hooks
-export const useEditorActions = () => useEditorStore((state) => ({
-  addLink: state.addLink,
-  updateLink: state.updateLink,
-  deleteLink: state.deleteLink,
-  reorderLinks: state.reorderLinks,
-  setTheme: state.setTheme,
-  togglePreviewMode: state.togglePreviewMode,
-  setLinks: state.setLinks,
-  resetDirty: state.resetDirty,
-}));
+// Action hooks - 分别导出每个 action selector 以获得稳定的引用
+// 这是避免无限循环的正确方式：每个函数的引用都是稳定的
+// 推荐在组件中直接使用这些单独的 hooks
+export const useAddLink = () => useEditorStore((state) => state.addLink);
+export const useUpdateLink = () => useEditorStore((state) => state.updateLink);
+export const useDeleteLink = () => useEditorStore((state) => state.deleteLink);
+export const useReorderLinks = () => useEditorStore((state) => state.reorderLinks);
+export const useSetTheme = () => useEditorStore((state) => state.setTheme);
+export const useTogglePreviewMode = () => useEditorStore((state) => state.togglePreviewMode);
+export const useSetLinks = () => useEditorStore((state) => state.setLinks);
+export const useResetDirty = () => useEditorStore((state) => state.resetDirty);

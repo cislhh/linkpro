@@ -1,11 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import type { PageModule, Link, LayoutItem, Project } from "@/types";
-import { RotateCw } from "lucide-react";
+import dynamic from "next/dynamic";
+
+// bundle-dynamic-imports: 动态导入图标减少 bundle 大小
+const RotateCw = dynamic(() => import("lucide-react").then(mod => mod.RotateCw), {
+  ssr: false,
+  loading: () => <div className="w-5 h-5" />
+});
+
+// js-early-exit: 提取常量避免 Magic Numbers
+const SAFE_AREA = {
+  DYNAMIC_ISLAND_TOP: 12,
+  DYNAMIC_ISLAND_HEIGHT: 37,
+  DYNAMIC_ISLAND_BOTTOM: 49, // 12 + 37
+  FRONT_PADDING_TOP: 55, // DYNAMIC_ISLAND_BOTTOM + 6px 安全距离
+  BACK_PADDING_TOP: 70,
+  PADDING_BOTTOM: 24,
+} as const;
+
+// rendering-hoist-jsx: 静态类名常量
+const BUTTON_CLASSES =
+  "absolute top-4 right-4 z-30 flex items-center justify-center w-12 h-12 rounded-full bg-white/20 backdrop-blur-md border border-white/30 hover:bg-white/30 transition-colors";
 
 /**
  * AuroraPreviewTemplate Component
@@ -42,7 +62,7 @@ interface AuroraPreviewTemplateProps {
 
 export function AuroraPreviewTemplate({
   modules,
-  layout,
+  layout: _layout, // eslint-disable-line @typescript-eslint/no-unused-vars -- 保留以备将来使用
   userName,
   userBio,
   userAvatar,
@@ -62,17 +82,17 @@ export function AuroraPreviewTemplate({
     ease: [0.4, 0, 0.2, 1] as const,
   };
 
-  // 处理翻转
-  const handleFlip = () => {
+  // rerender-dependencies: 使用 useCallback 稳定化函数引用
+  const handleFlip = useCallback(() => {
     setIsFlipped((prev) => !prev);
-  };
+  }, []);
 
-  // 键盘事件处理
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  // 键盘事件处理 - 使用 useCallback 稳定化
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape' && isFlipped) {
       setIsFlipped(false);
     }
-  };
+  }, [isFlipped]);
 
   // 从模块中提取数据
   const skillsModule = modules.find(m => m.type === "skills");
@@ -108,15 +128,7 @@ export function AuroraPreviewTemplate({
             <AuroraBackground />
 
             {/* 悬浮翻转按钮 - 右上角 */}
-            <motion.button
-              onClick={handleFlip}
-              className="absolute top-4 right-4 z-30 flex items-center justify-center w-12 h-12 rounded-full bg-white/20 backdrop-blur-md border border-white/30 hover:bg-white/30 transition-colors"
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              aria-label="查看更多信息"
-            >
-              <RotateCw className="w-5 h-5 text-white" />
-            </motion.button>
+            <FlipButton onClick={handleFlip} ariaLabel="查看更多信息" />
 
             {/* 正面内容 - 头像距离顶部 15px，flex-1 确保填满 */}
             <FrontContent
@@ -159,6 +171,8 @@ export function AuroraPreviewTemplate({
 /**
  * AuroraBackground - 极光动画背景
  * 确保不溢出容器
+ * rendering-hoist-jsx: 提取为共享组件消除代码重复
+ * 注意: 不使用 memo 因为组件无 props，且父组件已通过条件渲染控制 mount/unmount
  */
 function AuroraBackground() {
   return (
@@ -199,6 +213,29 @@ function AuroraBackground() {
 }
 
 /**
+ * FlipButton - 悬浮翻转按钮
+ * 提取为共享组件避免代码重复
+ */
+interface FlipButtonProps {
+  onClick: () => void;
+  ariaLabel: string;
+}
+
+function FlipButton({ onClick, ariaLabel }: FlipButtonProps) {
+  return (
+    <motion.button
+      onClick={onClick}
+      className={BUTTON_CLASSES}
+      whileHover={{ scale: 1.1 }}
+      whileTap={{ scale: 0.9 }}
+      aria-label={ariaLabel}
+    >
+      <RotateCw className="w-5 h-5 text-white" />
+    </motion.button>
+  );
+}
+
+/**
  * FrontContent - 正面内容组件
  * 使用 flex 布局确保内容不足时背景仍填满容器
  */
@@ -224,7 +261,10 @@ function FrontContent({
   const skillsPreview = skills.slice(0, 3);
 
   return (
-    <div className="relative z-10 flex-1 flex flex-col px-6 aurora-scrollbar overflow-y-auto" style={{ paddingTop: '55px', paddingBottom: '24px' }}>
+    <div
+      className="relative z-10 flex-1 flex flex-col px-6 aurora-scrollbar overflow-y-auto"
+      style={{ paddingTop: SAFE_AREA.FRONT_PADDING_TOP, paddingBottom: SAFE_AREA.PADDING_BOTTOM }}
+    >
       <motion.div
         className="w-full max-w-sm mx-auto"
         initial={{ opacity: 0 }}
@@ -366,53 +406,16 @@ function BackContent({
   return (
     <div className="relative h-full flex flex-col">
       {/* Aurora 背景 - 延伸到内容底部 */}
-      <div className="absolute inset-0">
-        {/* 主背景渐变 */}
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'linear-gradient(135deg, #0F172A, #581C87, #4A5568)',
-          }}
-        />
-
-        {/* 第一层 - 紫色光晕 */}
-        <motion.div
-          className="absolute inset-0"
-          animate={{ opacity: [0.3, 0.5, 0.3] }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ background: 'radial-gradient(ellipse at 20% 30%, #A855F7, transparent 50%)' }}
-        />
-
-        {/* 第二层 - 青色光晕 */}
-        <motion.div
-          className="absolute inset-0"
-          animate={{ opacity: [0.2, 0.4, 0.2] }}
-          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ background: 'radial-gradient(ellipse at 80% 70%, #14B8A6, transparent 50%)' }}
-        />
-
-        {/* 第三层 - 粉色光晕 */}
-        <motion.div
-          className="absolute inset-0"
-          animate={{ opacity: [0.15, 0.35, 0.15] }}
-          transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
-          style={{ background: 'radial-gradient(ellipse at 50% 50%, #EC4899, transparent 50%)' }}
-        />
-      </div>
+      <AuroraBackground />
 
       {/* 悬浮翻转按钮 - 右上角 */}
-      <motion.button
-        onClick={onFlip}
-        className="absolute top-4 right-4 z-30 flex items-center justify-center w-12 h-12 rounded-full bg-white/20 backdrop-blur-md border border-white/30 hover:bg-white/30 transition-colors"
-        whileHover={{ scale: 1.1 }}
-        whileTap={{ scale: 0.9 }}
-        aria-label="返回正面"
-      >
-        <RotateCw className="w-5 h-5 text-white" />
-      </motion.button>
+      <FlipButton onClick={onFlip} ariaLabel="返回正面" />
 
       {/* 单一滚动内容区域 */}
-      <div className="relative z-10 flex-1 px-6 pb-12 aurora-scrollbar overflow-y-auto" style={{ paddingTop: '70px' }}>
+      <div
+        className="relative z-10 flex-1 px-6 pb-12 aurora-scrollbar overflow-y-auto"
+        style={{ paddingTop: SAFE_AREA.BACK_PADDING_TOP }}
+      >
         {/* 项目作品 */}
         {projects.length > 0 && (
           <section className="mb-8">

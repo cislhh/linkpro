@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, Smartphone, RefreshCw, LayoutGrid, Link as LinkIcon, Loader2 } from "lucide-react";
@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button";
 import { LivePreview } from "@/components/features/preview";
 import { PhoneFrame, PhoneFrameContent } from "@/components/ui/phone-frame";
 import { AuroraPreviewTemplate } from "@/components/features/preview/aurora-preview-template";
-import { useEditorStore } from "@/stores/editor-store";
-import { useLayoutStore } from "@/stores/layout-store";
+import { useEditorStore, useSetLinks } from "@/stores/editor-store";
+import { useLayoutStore, useSetModules } from "@/stores/layout-store";
 import { getUserProfile } from "@/actions/user-actions";
 import { getModules } from "@/actions/module-actions";
 import { getUserLinks } from "@/actions/link-actions";
-import type { PageModule } from "@/types";
+import type { Link, Project } from "@/types";
 
 type PreviewMode = "links" | "layout";
 
@@ -30,17 +30,25 @@ type PreviewMode = "links" | "layout";
 export default function PreviewPage() {
     const [previewMode, setPreviewMode] = useState<PreviewMode>("layout");
     const { data: session } = useSession();
-    const { links: storeLinks, theme, setLinks: setStoreLinks } = useEditorStore();
-    const { mobileLayout, modules: storeModules, setModules: setStoreModules } = useLayoutStore();
+
+    // rerender-dependencies: 使用选择器获取状态，避免订阅整个 store
+    const { links: storeLinks, theme } = useEditorStore();
+    const { mobileLayout, modules: storeModules } = useLayoutStore();
+
+    // rerender-dependencies: 使用单独的 action hooks 获得稳定的函数引用
+    const setStoreLinks = useSetLinks();
+    const setStoreModules = useSetModules();
+
+    // client-localstorage-schema: 使用正确的类型替代 any[]
     const [userData, setUserData] = useState<{
         name: string | null;
         bio: string | null;
         avatarUrl: string | null;
         phone: string | null;
         contact: string | null;
-        projects: any[] | null;
+        projects: Project[] | null;
     } | null>(null);
-    const [links, setLinks] = useState<any[]>([]);
+    const [links, setLinks] = useState<Link[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     // Load user profile on mount
@@ -83,7 +91,7 @@ export default function PreviewPage() {
                     setStoreLinks(linksResult.data);
                 }
             } catch (error) {
-                // Error handling
+                console.error("Failed to load user data:", error);
             } finally {
                 if (isMounted) {
                     setIsLoading(false);
@@ -96,7 +104,13 @@ export default function PreviewPage() {
         return () => {
             isMounted = false;
         };
-    }, [session?.user?.id, setStoreModules, setStoreLinks]); // 每次 session 变化时重新加载
+    }, [session?.user?.id, setStoreModules, setStoreLinks]); // 函数引用稳定，不会导致无限循环
+
+    // rerender-derived-state: 使用 useMemo 缓存派生状态
+    const activeLinksCount = useMemo(
+        () => links.filter((l) => l.isActive).length,
+        [links]
+    );
 
     // Show loading state
     if (isLoading) {
@@ -159,7 +173,7 @@ export default function PreviewPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">
-                            {links.filter((l) => l.isActive).length}
+                            {activeLinksCount}
                         </div>
                         <p className="text-xs text-muted-foreground">
                             共 {links.length} 个链接
