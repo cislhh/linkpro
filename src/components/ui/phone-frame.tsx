@@ -165,14 +165,11 @@ export function PhoneFrameContent({
   return (
     <div
       className={cn(
-        // Safe area padding
+        // Safe area padding - fill available space
         "w-full h-full",
-        // Scroll behavior
-        "overflow-y-auto overflow-x-hidden",
-        // Smooth scrolling
-        "scroll-smooth",
-        // Hide scrollbar but allow scrolling
-        "scrollbar-hide",
+        // Only prevent horizontal overflow
+        "overflow-x-hidden",
+        // Allow inner component to handle scrolling
         className
       )}
       style={{

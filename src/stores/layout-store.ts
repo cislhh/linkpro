@@ -47,9 +47,10 @@ export const useLayoutStore = create<LayoutEditorState>((set, get) => ({
 
       let mobileLayout: LayoutItem[];
 
-      if (layoutsResult.success && layoutsResult.data.mobileLayout) {
+      if (layoutsResult.success && (layoutsResult as { success: true; data: { mobileLayout: LayoutItem[] | null; desktopLayout: LayoutItem[] | null } }).data.mobileLayout) {
         // Use saved mobile layout from user profile
-        mobileLayout = layoutsResult.data.mobileLayout as LayoutItem[] || [];
+        const data = (layoutsResult as { success: true; data: { mobileLayout: LayoutItem[] | null; desktopLayout: LayoutItem[] | null } }).data;
+        mobileLayout = data.mobileLayout as LayoutItem[] || [];
 
         // Ensure all modules have layout items
         const mobileIds = new Set(mobileLayout.map(l => l.i));

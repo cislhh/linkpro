@@ -1,30 +1,25 @@
 "use client";
 
+import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
 import type { PageModule, Link, LayoutItem, Project } from "@/types";
-import { Sparkle, Github, Twitter, Linkedin, Instagram, Globe, Mail, Phone } from "lucide-react";
+import { RotateCw } from "lucide-react";
 
 /**
  * AuroraPreviewTemplate Component
  *
- * Complete Aurora theme preview template with seamless design.
- * Renders rich styled content based on layout structure.
+ * 双面翻转卡片预览模板 - 完整修复版
  *
- * Design System (from ui-ux-pro-max):
- * - Style: Aurora/Motion-Driven with mesh gradients
- * - Colors: Cyan #00FFFF, Magenta #FF00FF, Blue #0066FF, Green #00FF66
- * - Animation: 8-12s smooth gradient flow, entrance animations
- * - Typography: Friendly, readable, good contrast
- * - Layout: Seamless business card style, no hard module boundaries
- * - Accessibility: 4.5:1 contrast minimum, reduced-motion support
- *
- * Features:
- * - Animated aurora background
- * - Smooth entrance animations
- * - Seamless module rendering (no card boundaries)
- * - Unified glassmorphism container
- * - Business card/Resume aesthetic
+ * 修复内容：
+ * - 头像距离顶部 15px（安全区域内）
+ * - 右上角悬浮按钮翻转
+ * - 背景不溢出容器
+ * - 背面背景延伸到内容底部
+ * - 自定义滚动条样式
+ * - 正面内容不足时背景仍填满容器
+ * - 背面单一滚动区域（无双重滚动）
  */
 interface AuroraPreviewTemplateProps {
   /** Modules to render */
@@ -57,432 +52,491 @@ export function AuroraPreviewTemplate({
   userProjects = [],
   className,
 }: AuroraPreviewTemplateProps) {
-  // Create a map of layout items by module ID
-  const layoutMap = new Map(layout.map((item) => [item.i, item]));
+  const [isFlipped, setIsFlipped] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
 
-  // Grid configuration: MUST MATCH layout editor (layout-grid.tsx)
-  // From layout editor: cols=2, rowHeight=80, margin=[16,16]
-  const cols = 2;
-  const rowHeight = 80;  // Must match LayoutGrid rowHeight
-  const gap = 16;        // Must match LayoutGrid margin [16, 16]
+  // 翻转动画配置
+  const flipDuration = prefersReducedMotion ? 0 : 0.35;
+  const flipAnimation = {
+    duration: flipDuration,
+    ease: [0.4, 0, 0.2, 1] as const,
+  };
 
-  // Calculate the maximum row
-  let maxRow = 0;
-  layout.forEach((item) => {
-    const endRow = item.y + item.h;
-    if (endRow > maxRow) maxRow = endRow;
-  });
+  // 处理翻转
+  const handleFlip = () => {
+    setIsFlipped((prev) => !prev);
+  };
 
-  // Group modules by type for cohesive rendering
-  const bioModule = modules.find(m => m.type === "bio");
-  const linksModule = modules.find(m => m.type === "links");
+  // 键盘事件处理
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape' && isFlipped) {
+      setIsFlipped(false);
+    }
+  };
+
+  // 从模块中提取数据
   const skillsModule = modules.find(m => m.type === "skills");
-  const projectsModule = modules.find(m => m.type === "projects");
+  const skills = skillsModule?.type === "skills"
+    ? (skillsModule.data as { skills: string[] }).skills || []
+    : [];
+
+  const activeLinks = links.filter((link) => link.isActive);
 
   return (
     <div
       className={cn(
-        "relative min-h-full w-full",
-        "overflow-hidden",
+        "relative w-full h-full",
         className
       )}
+      style={{
+        fontFamily: 'var(--font-body)',
+      }}
+      onKeyDown={handleKeyDown}
     >
-      {/* Aurora Background - Animated mesh gradient */}
-      <AuroraBackground />
-
-      {/* Unified Glassmorphism Container - Business Card Style */}
-      <div className="relative z-10 px-3 pb-3 pt-3">
-        <motion.div
-          className="rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 shadow-2xl"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-        >
-          {/* Content Grid - Seamless Layout */}
-          <div
-            className="p-4"
-            style={{
-              display: "grid",
-              gridTemplateColumns: `repeat(${cols}, 1fr)`,
-              gridAutoRows: `${rowHeight}px`,
-              gap: `${gap}px`,
-              minHeight: maxRow * rowHeight + (maxRow - 1) * gap,
-            }}
+      <AnimatePresence mode="wait" initial={false}>
+        {!isFlipped ? (
+          // 正面 - 最小高度填满容器
+          <motion.div
+            key="front"
+            initial={{ rotateY: 90, opacity: 0 }}
+            animate={{ rotateY: 0, opacity: 1 }}
+            exit={{ rotateY: -90, opacity: 0 }}
+            transition={flipAnimation}
+            className="relative w-full min-h-full flex flex-col"
           >
-            {modules.length === 0 ? (
-              // Empty state
-              <div
-                className="col-span-2 flex flex-col items-center justify-center py-12"
-                style={{ minHeight: "300px" }}
-              >
-                <Sparkle className="h-16 w-16 text-white/20 mb-4" />
-                <p className="text-white/60 text-sm">暂无模块内容</p>
-                <p className="text-white/40 text-xs mt-2">请先在页面管理中添加模块</p>
-              </div>
-            ) : (
-              modules.map((module, index) => {
-                const layoutItem = layoutMap.get(module.id);
-                if (!layoutItem) return null;
+            {/* Aurora 背景 */}
+            <AuroraBackground />
 
-                return (
-                  <motion.div
-                    key={module.id}
-                    style={{
-                      gridColumn: `${layoutItem.x + 1} / span ${layoutItem.w}`,
-                      gridRow: `${layoutItem.y + 1} / span ${layoutItem.h}`,
-                    }}
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: index * 0.08, ease: "easeOut" }}
-                  >
-                    <SeamlessModuleContent
-                      module={module}
-                      links={links}
-                      userProjects={userProjects}
-                      userName={userName}
-                      userBio={userBio}
-                      userAvatar={userAvatar}
-                      userPhone={userPhone}
-                      userContact={userContact}
-                    />
-                  </motion.div>
-                );
-              })
-            )}
-          </div>
-        </motion.div>
-      </div>
+            {/* 悬浮翻转按钮 - 右上角 */}
+            <motion.button
+              onClick={handleFlip}
+              className="absolute top-4 right-4 z-30 flex items-center justify-center w-12 h-12 rounded-full bg-white/20 backdrop-blur-md border border-white/30 hover:bg-white/30 transition-colors"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              aria-label="查看更多信息"
+            >
+              <RotateCw className="w-5 h-5 text-white" />
+            </motion.button>
 
-      {/* Footer */}
+            {/* 正面内容 - 头像距离顶部 15px，flex-1 确保填满 */}
+            <FrontContent
+              userName={userName}
+              userBio={userBio}
+              userAvatar={userAvatar}
+              userPhone={userPhone}
+              userContact={userContact}
+              links={activeLinks}
+              skills={skills}
+            />
+          </motion.div>
+        ) : (
+          // 背面 - 单一滚动区域
+          <motion.div
+            key="back"
+            initial={{ rotateY: 90, opacity: 0 }}
+            animate={{ rotateY: 0, opacity: 1 }}
+            exit={{ rotateY: -90, opacity: 0 }}
+            transition={flipAnimation}
+            className="relative w-full h-full overflow-hidden"
+          >
+            {/* 背面内容 - 背景内置，单一滚动 */}
+            <BackContent
+              userName={userName}
+              userPhone={userPhone}
+              userContact={userContact}
+              links={activeLinks}
+              skills={skills}
+              projects={userProjects}
+              onFlip={handleFlip}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/**
+ * AuroraBackground - 极光动画背景
+ * 确保不溢出容器
+ */
+function AuroraBackground() {
+  return (
+    <div className="absolute inset-0">
+      {/* 主背景渐变 */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'linear-gradient(135deg, #0F172A, #581C87, #4A5568)',
+        }}
+      />
+
+      {/* 第一层 - 紫色光晕 */}
       <motion.div
-        className="relative z-10 py-2 text-center"
+        className="absolute inset-0"
+        animate={{ opacity: [0.3, 0.5, 0.3] }}
+        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ background: 'radial-gradient(ellipse at 20% 30%, #A855F7, transparent 50%)' }}
+      />
+
+      {/* 第二层 - 青色光晕 */}
+      <motion.div
+        className="absolute inset-0"
+        animate={{ opacity: [0.2, 0.4, 0.2] }}
+        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ background: 'radial-gradient(ellipse at 80% 70%, #14B8A6, transparent 50%)' }}
+      />
+
+      {/* 第三层 - 粉色光晕 */}
+      <motion.div
+        className="absolute inset-0"
+        animate={{ opacity: [0.15, 0.35, 0.15] }}
+        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+        style={{ background: 'radial-gradient(ellipse at 50% 50%, #EC4899, transparent 50%)' }}
+      />
+    </div>
+  );
+}
+
+/**
+ * FrontContent - 正面内容组件
+ * 使用 flex 布局确保内容不足时背景仍填满容器
+ */
+function FrontContent({
+  userName,
+  userBio,
+  userAvatar,
+  userPhone,
+  userContact,
+  links,
+  skills,
+}: {
+  userName?: string | null;
+  userBio?: string | null;
+  userAvatar?: string | null;
+  userPhone?: string | null;
+  userContact?: string | null;
+  links: Link[];
+  skills: string[];
+}) {
+  // 取前3个链接和技能
+  const mainLinks = links.slice(0, 3);
+  const skillsPreview = skills.slice(0, 3);
+
+  return (
+    <div className="relative z-10 flex-1 flex flex-col px-6 aurora-scrollbar overflow-y-auto" style={{ paddingTop: '55px', paddingBottom: '24px' }}>
+      <motion.div
+        className="w-full max-w-sm mx-auto"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, delay: 0.4 }}
+        transition={{ duration: 0.6 }}
       >
-        <p className="text-xs text-white/30 font-medium">
-          Powered by LinkPro
-        </p>
+        {/* 头像 - 距离顶部 15px */}
+        {userAvatar && (
+          <motion.div
+            className="text-center mb-4"
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <img
+              src={userAvatar}
+              alt={userName || "用户"}
+              className="mx-auto h-20 w-20 rounded-full object-cover ring-4 ring-white/30"
+            />
+          </motion.div>
+        )}
+
+        {/* 姓名 */}
+        <motion.h1
+          className="text-3xl font-bold text-white mb-2 text-center"
+          style={{ fontFamily: 'var(--font-heading)' }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+        >
+          {userName || "用户名"}
+        </motion.h1>
+
+        {/* 简介 */}
+        {userBio && (
+          <motion.p
+            className="text-sm text-white/70 text-center mb-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            {userBio}
+          </motion.p>
+        )}
+
+        {/* 技能预览 */}
+        {skillsPreview.length > 0 && (
+          <motion.div
+            className="flex justify-center gap-3 mb-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+          >
+            {skillsPreview.map((skill: string, index: number) => (
+              <div
+                key={index}
+                className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white/80 text-sm font-medium border border-white/20"
+                title={skill}
+              >
+                {skill.length <= 2 ? skill.toUpperCase() : skill.substring(0, 2).toUpperCase()}
+              </div>
+            ))}
+          </motion.div>
+        )}
+
+        {/* 主要链接 */}
+        <motion.div
+          className="space-y-3 mb-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: 0.4 }}
+        >
+          {mainLinks.map((link) => (
+            <motion.a
+              key={link.id}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full min-h-11 px-6 py-4 rounded-2xl text-center text-white backdrop-blur-md bg-white/10 border border-white/20 hover:bg-white/20"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <span className="flex items-center justify-center gap-3">
+                {link.icon && <span>{link.icon}</span>}
+                <span className="font-medium">{link.title}</span>
+              </span>
+            </motion.a>
+          ))}
+        </motion.div>
+
+        {/* 联系方式 */}
+        <motion.div
+          className="space-y-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: 0.5 }}
+        >
+          {userContact && (
+            <div className="flex items-center justify-center gap-2 text-white/60 text-sm">
+              <span className="text-xs">邮箱:</span>
+              <span>{userContact}</span>
+            </div>
+          )}
+          {userPhone && (
+            <div className="flex items-center justify-center gap-2 text-white/60 text-sm">
+              <span className="text-xs">电话:</span>
+              <span>{userPhone}</span>
+            </div>
+          )}
+        </motion.div>
       </motion.div>
     </div>
   );
 }
 
 /**
- * AuroraBackground Component
- *
- * Animated aurora/mesh gradient background.
- * Uses multiple gradient layers for depth.
+ * BackContent - 背面内容组件
+ * 单一滚动区域，背景延伸到内容底部
  */
-function AuroraBackground() {
-  return (
-    <div className="absolute inset-0 bg-slate-950">
-      {/* Layer 1 - Purple/Blue gradient */}
-      <motion.div
-        className="absolute inset-0 opacity-50"
-        animate={{
-          background: [
-            'radial-gradient(ellipse 80% 50% at 50% 50%, rgba(120, 119, 198, 0.4), transparent)',
-            'radial-gradient(ellipse 80% 50% at 60% 40%, rgba(120, 119, 198, 0.4), transparent)',
-            'radial-gradient(ellipse 80% 50% at 40% 60%, rgba(120, 119, 198, 0.4), transparent)',
-            'radial-gradient(ellipse 80% 50% at 50% 50%, rgba(120, 119, 198, 0.4), transparent)',
-          ],
-        }}
-        transition={{
-          duration: 10,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      />
-
-      {/* Layer 2 - Green/Cyan gradient */}
-      <motion.div
-        className="absolute inset-0 opacity-40"
-        animate={{
-          background: [
-            'radial-gradient(ellipse 60% 40% at 30% 30%, rgba(74, 222, 128, 0.3), transparent)',
-            'radial-gradient(ellipse 60% 40% at 40% 40%, rgba(74, 222, 128, 0.3), transparent)',
-            'radial-gradient(ellipse 60% 40% at 50% 30%, rgba(74, 222, 128, 0.3), transparent)',
-            'radial-gradient(ellipse 60% 40% at 30% 30%, rgba(74, 222, 128, 0.3), transparent)',
-          ],
-        }}
-        transition={{
-          duration: 12,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      />
-
-      {/* Layer 3 - Pink/Magenta gradient */}
-      <motion.div
-        className="absolute inset-0 opacity-35"
-        animate={{
-          background: [
-            'radial-gradient(ellipse 70% 60% at 70% 70%, rgba(236, 72, 153, 0.25), transparent)',
-            'radial-gradient(ellipse 70% 60% at 60% 60%, rgba(236, 72, 153, 0.25), transparent)',
-            'radial-gradient(ellipse 70% 60% at 80% 50%, rgba(236, 72, 153, 0.25), transparent)',
-            'radial-gradient(ellipse 70% 60% at 70% 70%, rgba(236, 72, 153, 0.25), transparent)',
-          ],
-        }}
-        transition={{
-          duration: 14,
-          repeat: Infinity,
-          ease: "easeInOut",
-        }}
-      />
-
-      {/* Noise overlay for texture */}
-      <div className="absolute inset-0 opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PGZlQ29sb3JNYXRyaXggdHlwZT0ic2F0dXJhdGUiIHZhbHVlcz0iMCIvPjwvZmlsdGVyPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbHRlcj0idXJsKCNhKSIgb3BhY2l0eT0iMC4wNSIvPjwvc3ZnPg==')]" />
-    </div>
-  );
-}
-
-/**
- * SeamlessModuleContent Component
- *
- * Renders module content without card boundaries.
- * Content blends seamlessly into the unified container.
- */
-interface SeamlessModuleContentProps {
-  module: PageModule;
-  links?: Link[];
-  userProjects?: Project[];
-  userName?: string | null;
-  userBio?: string | null;
-  userAvatar?: string | null;
-  userPhone?: string | null;
-  userContact?: string | null;
-}
-
-function SeamlessModuleContent({
-  module,
-  links = [],
-  userProjects = [],
+function BackContent({
   userName,
-  userBio,
-  userAvatar,
   userPhone,
   userContact,
-}: SeamlessModuleContentProps) {
-  switch (module.type) {
-    case "bio":
-      return <BioModule userName={userName} userBio={userBio} userAvatar={userAvatar} />;
-
-    case "links":
-      return <LinksModule links={links} />;
-
-    case "skills":
-      return <SkillsModule module={module} />;
-
-    case "projects":
-      return <ProjectsModule projects={userProjects} />;
-
-    default:
-      return null;
-  }
-}
-
-/**
- * BioModule - User profile section (seamless)
- */
-function BioModule({
-  userName,
-  userBio,
-  userAvatar,
+  links,
+  skills,
+  projects,
+  onFlip,
 }: {
   userName?: string | null;
-  userBio?: string | null;
-  userAvatar?: string | null;
+  userPhone?: string | null;
+  userContact?: string | null;
+  links: Link[];
+  skills: string[];
+  projects: Project[];
+  onFlip: () => void;
 }) {
   return (
-    <div className="h-full flex flex-col items-center justify-center text-center">
-      {userAvatar ? (
+    <div className="relative h-full flex flex-col">
+      {/* Aurora 背景 - 延伸到内容底部 */}
+      <div className="absolute inset-0">
+        {/* 主背景渐变 */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'linear-gradient(135deg, #0F172A, #581C87, #4A5568)',
+          }}
+        />
+
+        {/* 第一层 - 紫色光晕 */}
         <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-          className="relative"
-        >
-          <div className="w-20 h-20 rounded-full overflow-hidden ring-2 ring-white/20 ring-offset-2 ring-offset-transparent">
-            <img
-              src={userAvatar}
-              alt={userName || "Avatar"}
-              className="w-full h-full object-cover"
-            />
-          </div>
-          {/* Subtle glow effect */}
-          <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-cyan-400/20 to-purple-400/20 blur-xl -z-10" />
-        </motion.div>
-      ) : (
+          className="absolute inset-0"
+          animate={{ opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ background: 'radial-gradient(ellipse at 20% 30%, #A855F7, transparent 50%)' }}
+        />
+
+        {/* 第二层 - 青色光晕 */}
         <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.4 }}
-          className="w-20 h-20 rounded-full bg-gradient-to-br from-white/10 to-white/5 flex items-center justify-center ring-1 ring-white/10"
-        >
-          <Sparkle className="h-10 w-10 text-white/50" />
-        </motion.div>
-      )}
+          className="absolute inset-0"
+          animate={{ opacity: [0.2, 0.4, 0.2] }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ background: 'radial-gradient(ellipse at 80% 70%, #14B8A6, transparent 50%)' }}
+        />
 
-      {userName && (
-        <motion.h3
-          className="text-xl font-bold text-white mt-3 mb-1"
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-        >
-          {userName}
-        </motion.h3>
-      )}
-
-      {userBio && (
-        <motion.p
-          className="text-sm text-white/60 leading-relaxed px-2"
-          initial={{ opacity: 0, y: 5 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, delay: 0.3 }}
-        >
-          {userBio}
-        </motion.p>
-      )}
-    </div>
-  );
-}
-
-/**
- * LinksModule - Social links section (seamless)
- */
-function LinksModule({
-  links,
-}: {
-  links?: Link[];
-}) {
-  const activeLinks = links?.filter((link) => link.isActive) || [];
-
-  // Get icon component
-  const getIcon = (iconName: string) => {
-    const icons: Record<string, React.ReactNode> = {
-      github: <Github className="h-4 w-4" />,
-      twitter: <Twitter className="h-4 w-4" />,
-      linkedin: <Linkedin className="h-4 w-4" />,
-      instagram: <Instagram className="h-4 w-4" />,
-      globe: <Globe className="h-4 w-4" />,
-      mail: <Mail className="h-4 w-4" />,
-      phone: <Phone className="h-4 w-4" />,
-    };
-    return icons[iconName] || <Globe className="h-4 w-4" />;
-  };
-
-  return (
-    <div className="h-full flex flex-col justify-center gap-2">
-      {activeLinks.map((link, index) => (
-        <motion.a
-          key={link.id}
-          href={link.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 transition-all duration-300 cursor-pointer border border-white/5 hover:border-white/10"
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3, delay: index * 0.05 }}
-          whileHover={{ x: 4 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          {link.icon && (
-            <span className="text-white/60 group-hover:text-cyan-400 transition-colors duration-300">
-              {getIcon(link.icon)}
-            </span>
-          )}
-          <span className="text-sm text-white/80 group-hover:text-white font-medium transition-colors duration-300 flex-1">
-            {link.title}
-          </span>
-          <span className="text-white/30 group-hover:text-white/50 transition-colors duration-300">
-            <Globe className="h-3 w-3" />
-          </span>
-        </motion.a>
-      ))}
-    </div>
-  );
-}
-
-/**
- * SkillsModule - Skills tags section (seamless)
- */
-function SkillsModule({
-  module,
-}: {
-  module: PageModule;
-}) {
-  const skills = module.type === "skills" ? (module.data as { skills: string[] }).skills || [] : [];
-
-  return (
-    <div className="h-full flex flex-wrap items-center justify-center gap-2 content-center">
-      {skills.map((skill: string, index: number) => (
-        <motion.span
-          key={index}
-          className="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-xs font-medium border border-white/5 hover:border-white/10 transition-all duration-300 cursor-default"
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.25, delay: index * 0.04 }}
-          whileHover={{ scale: 1.05 }}
-        >
-          {skill}
-        </motion.span>
-      ))}
-    </div>
-  );
-}
-
-/**
- * ProjectsModule - Projects showcase section (seamless)
- */
-function ProjectsModule({
-  projects,
-}: {
-  projects?: Project[];
-}) {
-  const displayProjects = projects || [];
-
-  return (
-    <div className="h-full flex flex-col justify-center gap-2">
-      {displayProjects.map((project, index) => (
+        {/* 第三层 - 粉色光晕 */}
         <motion.div
-          key={project.id || index}
-          className="group p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/10 transition-all duration-300 cursor-pointer"
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.3, delay: index * 0.08 }}
-          whileHover={{ x: 4 }}
-        >
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400/20 to-purple-400/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <Sparkle className="h-4 w-4 text-cyan-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="text-sm font-semibold text-white mb-1 group-hover:text-cyan-300 transition-colors duration-300">
-                {project.name}
-              </h4>
-              {project.description && (
-                <p className="text-xs text-white/50 leading-relaxed line-clamp-2">
-                  {project.description}
-                </p>
-              )}
-              {project.url && (
+          className="absolute inset-0"
+          animate={{ opacity: [0.15, 0.35, 0.15] }}
+          transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
+          style={{ background: 'radial-gradient(ellipse at 50% 50%, #EC4899, transparent 50%)' }}
+        />
+      </div>
+
+      {/* 悬浮翻转按钮 - 右上角 */}
+      <motion.button
+        onClick={onFlip}
+        className="absolute top-4 right-4 z-30 flex items-center justify-center w-12 h-12 rounded-full bg-white/20 backdrop-blur-md border border-white/30 hover:bg-white/30 transition-colors"
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        aria-label="返回正面"
+      >
+        <RotateCw className="w-5 h-5 text-white" />
+      </motion.button>
+
+      {/* 单一滚动内容区域 */}
+      <div className="relative z-10 flex-1 px-6 pb-12 aurora-scrollbar overflow-y-auto" style={{ paddingTop: '70px' }}>
+        {/* 项目作品 */}
+        {projects.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'var(--font-heading)' }}>
+              项目作品
+            </h2>
+            <div className="grid grid-cols-2 gap-3">
+              {projects.map((project, index) => (
                 <motion.a
-                  href={project.url}
+                  key={project.id || index}
+                  href={project.url || '#'}
+                  target={project.url ? '_blank' : undefined}
+                  rel={project.url ? 'noopener noreferrer' : undefined}
+                  className="rounded-2xl p-3 bg-white/10 backdrop-blur-md border border-white/20 hover:bg-white/15 cursor-pointer"
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.3, delay: index * 0.1 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  {project.imageUrl && (
+                    <div className="aspect-video w-full rounded-lg overflow-hidden mb-2 bg-white/5">
+                      <img src={project.imageUrl} alt={project.name} className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <h3 className="text-white text-sm font-semibold mb-1 truncate">{project.name}</h3>
+                  {project.description && (
+                    <p className="text-white/50 text-xs line-clamp-2">{project.description}</p>
+                  )}
+                </motion.a>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 技能专长 */}
+        {skills.length > 0 && (
+          <section className="mb-8">
+            <h2 className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'var(--font-heading)' }}>
+              技能专长
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              {skills.map((skill, index) => (
+                <motion.span
+                  key={index}
+                  className="px-4 py-2 rounded-full bg-white/10 text-white/80 text-sm border border-white/20 hover:bg-white/15"
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.25, delay: index * 0.05 }}
+                  whileHover={{ scale: 1.05 }}
+                >
+                  {skill}
+                </motion.span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 所有链接 */}
+        {links.length > 0 && (
+          <section className="mb-6">
+            <h2 className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'var(--font-heading)' }}>
+              所有链接
+            </h2>
+            <div className="space-y-3">
+              {links.map((link) => (
+                <motion.a
+                  key={link.id}
+                  href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-cyan-400/70 hover:text-cyan-400 mt-2 inline-flex items-center gap-1 transition-colors duration-300"
-                  onClick={(e) => e.stopPropagation()}
+                  className="block w-full min-h-11 px-6 py-4 rounded-2xl text-white backdrop-blur-md bg-white/10 border border-white/20 hover:bg-white/15"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  查看项目
-                  <Globe className="h-3 w-3" />
+                  <span className="flex items-center gap-3">
+                    {link.icon && <span>{link.icon}</span>}
+                    <span className="font-medium">{link.title}</span>
+                  </span>
+                </motion.a>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* 联系方式 */}
+        {(userPhone || userContact) && (
+          <section>
+            <h2 className="text-xl font-bold text-white mb-4" style={{ fontFamily: 'var(--font-heading)' }}>
+              联系方式
+            </h2>
+            <div className="space-y-3">
+              {userContact && (
+                <motion.a
+                  href={`mailto:${userContact}`}
+                  className="flex items-center gap-3 px-6 py-4 rounded-2xl text-white backdrop-blur-md bg-white/10 border border-white/20"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <span>✉</span>
+                  <span>{userContact}</span>
+                </motion.a>
+              )}
+              {userPhone && (
+                <motion.a
+                  href={`tel:${userPhone}`}
+                  className="flex items-center gap-3 px-6 py-4 rounded-2xl text-white backdrop-blur-md bg-white/10 border border-white/20"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <span>📞</span>
+                  <span>{userPhone}</span>
                 </motion.a>
               )}
             </div>
-          </div>
-        </motion.div>
-      ))}
+          </section>
+        )}
+      </div>
     </div>
   );
 }

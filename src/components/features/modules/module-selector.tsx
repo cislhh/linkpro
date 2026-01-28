@@ -66,7 +66,7 @@ const moduleTypes: ModuleTypeOption[] = [
         label: "项目展示",
         description: "项目卡片列表",
         icon: <FolderKanban className="h-6 w-6" />,
-        defaultData: { type: "projects", projects: [] },
+        defaultData: { type: "projects", projectIds: [] },
         defaultTitle: "项目",
     },
 ];

@@ -89,8 +89,8 @@ function getModuleDescription(module: PageModule): string {
             return `${data.skills?.length || 0} 个技能`;
         }
         case "projects": {
-            const data = module.data as { projects: unknown[] };
-            return `${data.projects?.length || 0} 个项目`;
+            const data = module.data as { projectIds: string[] };
+            return `${data.projectIds?.length || 0} 个项目`;
         }
         default:
             return "";

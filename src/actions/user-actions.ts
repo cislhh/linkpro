@@ -311,7 +311,7 @@ export async function updateUserProjects(
     const user = await prisma.user.update({
       where: { id: session.user.id },
       data: {
-        projects: validated.projects,
+        projects: validated.projects as unknown as Prisma.InputJsonValue,
       },
       select: {
         id: true,

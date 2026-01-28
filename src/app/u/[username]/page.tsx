@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
 import { prisma } from '@/lib/db';
 import { getThemeComponent } from '@/components/themes';
-import type { ThemeType, Link } from '@/types';
+import type { ThemeType, Link, Project, WorkExperience } from '@/types';
 
 /**
  * Public Page - 用户公开主页
@@ -28,6 +28,9 @@ interface UserData {
     contact: string | null;
     theme: string;
     isPublished: boolean;
+    projects: Project[] | null;
+    experience: WorkExperience[] | null;
+    skills: string[];
     links: Array<{
         id: string;
         userId: string;
@@ -43,10 +46,10 @@ interface UserData {
 
 /**
  * 获取用户数据（SSR）
- * 根据 username 查询用户和链接
+ * 根据 username 查询用户和链接，以及 Aurora 主题所需的额外数据
  */
 async function getUserByUsername(username: string): Promise<UserData | null> {
-    // Use raw SQL to get user with publish status
+    // Use raw SQL to get user with publish status and additional data
     const users = await prisma.$queryRaw<Array<{
         id: string;
         username: string;
@@ -57,8 +60,10 @@ async function getUserByUsername(username: string): Promise<UserData | null> {
         contact: string | null;
         theme: string;
         isPublished: boolean;
+        projects: unknown;
+        experience: unknown;
     }>>`
-        SELECT id, username, name, bio, "avatarUrl", phone, contact, theme, "isPublished"
+        SELECT id, username, name, bio, "avatarUrl", phone, contact, theme, "isPublished", projects, experience
         FROM "User"
         WHERE username = ${username}
     `;
@@ -81,6 +86,50 @@ async function getUserByUsername(username: string): Promise<UserData | null> {
         orderBy: { order: 'asc' },
     });
 
+    // 获取技能 (从 PageModule)
+    const skillsModule = await prisma.pageModule.findFirst({
+        where: {
+            userId: userData.id,
+            type: 'skills',
+        },
+    });
+
+    let skills: string[] = [];
+    if (skillsModule?.data) {
+        // Prisma JsonValue 需要正确转换
+        try {
+            const data = skillsModule.data as unknown;
+            if (data && typeof data === 'object' && 'skills' in data) {
+                skills = (data as { skills: string[] }).skills || [];
+            }
+        } catch (e) {
+            console.error('Failed to parse skills module data:', e);
+            skills = [];
+        }
+    }
+
+    // 调试日志 - 临时检查数据
+    if (skills.length > 0) {
+        console.log('[Aurora] Found skills:', skills);
+    } else {
+        console.log('[Aurora] No skills found for user:', userData.id);
+    }
+
+    // 解析 projects 和 experience JSON 字段
+    const projects = (userData.projects as Project[] | null) || null;
+    const experience = (userData.experience as WorkExperience[] | null) || null;
+
+    // 调试日志 - 检查所有数据
+    console.log('[Aurora] User data loaded:', {
+        userId: userData.id,
+        skillsCount: skills.length,
+        projectsCount: projects?.length || 0,
+        experienceCount: experience?.length || 0,
+        skills,
+        projects,
+        experience,
+    });
+
     return {
         id: userData.id,
         username: userData.username,
@@ -91,6 +140,9 @@ async function getUserByUsername(username: string): Promise<UserData | null> {
         contact: userData.contact,
         theme: userData.theme,
         isPublished: userData.isPublished,
+        projects,
+        experience,
+        skills,
         links,
     };
 }
@@ -188,6 +240,15 @@ export default async function PublicPage({ params }: PageProps) {
         updatedAt: new Date(link.updatedAt),
     }));
 
-    // 渲染主题组件 - Requirements: 5.1
-    return <ThemeComponent links={links} user={userData} />;
+    // 渲染主题组件 - 传递 Aurora 主题所需的所有数据
+    // 确保数组不为 undefined（使用空数组作为默认值）
+    return (
+        <ThemeComponent
+            links={links}
+            user={userData}
+            projects={user.projects || []}
+            skills={user.skills || []}
+            experience={user.experience || []}
+        />
+    );
 }

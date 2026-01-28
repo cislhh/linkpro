@@ -44,6 +44,10 @@
   --radius-2xl: calc(var(--radius) + 8px);
   --radius-3xl: calc(var(--radius) + 12px);
   --radius-4xl: calc(var(--radius) + 16px);
+
+  /* Aurora theme fonts */
+  --font-heading: 'Caveat', cursive;
+  --font-body: 'Quicksand', sans-serif;
 }
 
 :root {
@@ -79,6 +83,29 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* ===== Aurora Theme Variables ===== */
+  /* 极光渐变色彩 */
+  --aurora-bg-1: #0F172A;      /* slate-950 */
+  --aurora-bg-2: #581C87;      /* purple-900 */
+  --aurora-bg-3: #4A5568;      /* gray-700 */
+  --aurora-accent-1: #A855F7;  /* purple-500 */
+  --aurora-accent-2: #EC4899;  /* pink-500 */
+  --aurora-accent-3: #14B8A6;  /* teal-500 */
+
+  /* 文字颜色 */
+  --aurora-text-primary: #FFFFFF;
+  --aurora-text-secondary: rgba(255,255,255,0.80);
+  --aurora-text-muted: rgba(255,255,255,0.60);
+
+  /* 毛玻璃效果 */
+  --aurora-glass-bg: rgba(255,255,255,0.12);
+  --aurora-glass-bg-hover: rgba(255,255,255,0.18);
+  --aurora-glass-border: rgba(255,255,255,0.2);
+  --aurora-glass-shadow: 0 8px 32px rgba(0,0,0,0.3);
+
+  /* 交互状态 */
+  --aurora-focus-ring: rgba(168, 85, 247, 0.6);
 }
 
 .dark {
@@ -159,4 +186,116 @@
 
 .animate-cyber-glow {
   animation: cyber-glow 2s ease-in-out infinite;
+}
+
+/* ===== Aurora Flip Card Theme Styles ===== */
+
+/* 毛玻璃卡片效果 */
+.aurora-glass-card {
+  background: var(--aurora-glass-bg);
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border: 1px solid var(--aurora-glass-border);
+  box-shadow: var(--aurora-glass-shadow);
+}
+
+/* 极光背景渐变动画 (30秒循环) */
+@keyframes aurora-shift {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 100% 50%;
+  }
+}
+
+.aurora-background-animate {
+  background-size: 200% 200%;
+  animation: aurora-shift 30s ease-in-out infinite alternate;
+}
+
+/* Focus ring 样式 */
+.aurora-focus-ring:focus-visible {
+  outline: 2px solid var(--aurora-focus-ring);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.aurora-focus-ring:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* 脉冲动画 (用于翻转提示) */
+@keyframes aurora-pulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.aurora-pulse {
+  animation: aurora-pulse 2s ease-in-out infinite;
+}
+
+/* ===== Custom Scrollbar Styles ===== */
+
+/* Webkit browsers (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2);
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.3);
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.2);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.3);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
+}
+
+/* Aurora theme scrollbar - lighter style for dark backgrounds */
+.aurora-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.aurora-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.aurora-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }

@@ -15,6 +15,15 @@ export type {
 // Theme type - matches Zod schema
 export type ThemeType = 'aurora' | 'cyber' | 'glass';
 
+// Work experience interface for Aurora theme card back
+export interface WorkExperience {
+  company: string;       // 公司名称
+  position: string;      // 职位
+  startDate: string;     // 开始日期 (YYYY-MM)
+  endDate?: string;      // 结束日期 (null = 在职)
+  description?: string;  // 职位描述
+}
+
 // User interface - matches Prisma User model
 export interface User {
   id: string;
@@ -26,6 +35,7 @@ export interface User {
   phone: string | null;
   contact: string | null;
   projects: Project[] | null;
+  experience: WorkExperience[] | null;
   theme: ThemeType;
   createdAt: Date;
   updatedAt: Date;
@@ -80,6 +90,10 @@ export type ActionResult<T> =
 export interface ThemeProps {
   links: Link[];
   user: Pick<User, 'name' | 'bio' | 'avatarUrl' | 'username' | 'phone' | 'contact'>;
+  // Aurora theme additional data
+  projects?: Project[];
+  skills?: string[];
+  experience?: WorkExperience[];
   className?: string;
 }
 

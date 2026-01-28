@@ -16,9 +16,18 @@ export const projectSchema = z.object({
   id: z.string(),
   name: z.string().min(1, 'Project name is required').max(100, 'Project name too long'),
   description: z.string().max(500, 'Description too long'),
-  url: z.string().url('Invalid URL').nullable().optional(),
-  imageUrl: z.string().url('Invalid image URL').nullable().optional(),
+  url: z.string().url('Invalid URL').nullable(),
+  imageUrl: z.string().url('Invalid image URL').nullable(),
   tags: z.array(z.string().max(30, 'Tag too long')).max(10, 'Too many tags'),
+});
+
+// Work experience schema for Aurora theme
+export const workExperienceSchema = z.object({
+  company: z.string().min(1, '公司名称必填').max(100, '公司名称太长'),
+  position: z.string().min(1, '职位必填').max(100, '职位名称太长'),
+  startDate: z.string().regex(/^\d{4}-\d{2}$/, '日期格式: YYYY-MM'),
+  endDate: z.string().regex(/^\d{4}-\d{2}$/, '日期格式: YYYY-MM').optional(),
+  description: z.string().max(500, '描述太长').optional(),
 });
 
 // User profile validation schema
@@ -29,6 +38,7 @@ export const updateProfileSchema = z.object({
   phone: z.string().regex(/^[+]?[\d\s\-()]*$/, 'Invalid phone number').max(50).optional().or(z.literal('')),
   contact: z.string().max(200).optional().or(z.literal('')),
   projects: z.array(projectSchema).max(50, 'Too many projects').optional().or(z.literal(null)),
+  experience: z.array(workExperienceSchema).max(20, 'Too many work experiences').optional().or(z.literal(null)),
 });
 
 // Theme validation schema

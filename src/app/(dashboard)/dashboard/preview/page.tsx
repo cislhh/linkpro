@@ -213,8 +213,8 @@ export default function PreviewPage() {
                         {previewMode === "layout" ? (
                             // Aurora Theme Preview with PhoneFrame
                             theme === "aurora" ? (
-                                <PhoneFrame variant="default">
-                                    <PhoneFrameContent paddingTop="50px" paddingBottom="24px">
+                                <PhoneFrame variant="default" contentBackground="transparent">
+                                    <PhoneFrameContent paddingTop="12px" paddingBottom="8px">
                                         <AuroraPreviewTemplate
                                             modules={storeModules}
                                             layout={mobileLayout}
