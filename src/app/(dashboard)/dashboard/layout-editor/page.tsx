@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import { useState } from "react";
 import Link from "next/link";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,9 +8,8 @@ import { Grid3X3, Save, Eye, Loader2, Smartphone } from "lucide-react";
 import { LayoutGrid } from "@/components/features/layout-editor";
 import { PhoneFrame, PhoneFrameContent } from "@/components/ui/phone-frame";
 import { useLayoutStore } from "@/stores/layout-store";
-import { getModules } from "@/actions/module-actions";
-import { getUserLinks } from "@/actions/link-actions";
-import { getUserProfile } from "@/actions/user-actions";
+import { useEditorStore } from "@/stores/editor-store";
+import { useUserStore } from "@/stores/user-store";
 import type { PageModule, Link as LinkType, Project } from "@/types";
 import { toast } from "sonner";
 
@@ -27,66 +25,15 @@ import { toast } from "sonner";
  * Requirements: 23.1, 23.2, 23.3 - Simplified interaction (always editable)
  */
 export default function LayoutEditorPage() {
-    const { data: session } = useSession();
-    const [modules, setModules] = useState<PageModule[]>([]);
-    const [links, setLinks] = useState<LinkType[]>([]);
-    const [userProjects, setUserProjects] = useState<Project[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
-    const {
-        setModules: setStoreModules,
-        saveLayout,
-    } = useLayoutStore();
+    // Read from stores instead of fetching data
+    const { modules: storeModules, saveLayout } = useLayoutStore();
+    const { links } = useEditorStore();
+    const { projects } = useUserStore();
 
-    // Load modules and links on mount
-    useEffect(() => {
-        let isMounted = true;
-
-        async function loadData() {
-            if (!session?.user?.id) return;
-
-            try {
-                setIsLoading(true);
-                const [modulesResult, linksResult, profileResult] = await Promise.all([
-                    getModules(),
-                    getUserLinks(),
-                    getUserProfile(),
-                ]);
-
-                if (isMounted) {
-                    if (modulesResult.success) {
-                        setModules(modulesResult.data);
-                        // setStoreModules is now async
-                        await setStoreModules(modulesResult.data);
-                    }
-
-                    if (linksResult.success) {
-                        setLinks(linksResult.data);
-                    }
-
-                    if (profileResult.success && profileResult.data.projects) {
-                        setUserProjects(profileResult.data.projects);
-                    }
-                }
-            } catch (error) {
-                console.error("Failed to load data:", error);
-                if (isMounted) {
-                    toast.error("加载数据失败");
-                }
-            } finally {
-                if (isMounted) {
-                    setIsLoading(false);
-                }
-            }
-        }
-
-        loadData();
-
-        return () => {
-            isMounted = false;
-        };
-    }, [session?.user?.id, setStoreModules]);
+    // Check if data is loaded from DataProvider
+    const isLoading = storeModules.length === 0 && links.length === 0;
 
     // Handle save layout
     const handleSave = async () => {
@@ -166,9 +113,9 @@ export default function LayoutEditorPage() {
                             <PhoneFrame variant="bordered-only">
                                 <PhoneFrameContent paddingTop="50px" paddingBottom="24px">
                                     <LayoutGrid
-                                        modules={modules}
+                                        modules={storeModules}
                                         links={links}
-                                        userProjects={userProjects}
+                                        userProjects={projects || []}
                                         isEditing={true}
                                         cols={gridCols}
                                     />

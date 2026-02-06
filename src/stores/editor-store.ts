@@ -9,15 +9,17 @@ import type { Link, ThemeType, EditorState } from '@/types';
  * - theme: Currently selected theme
  * - previewMode: Whether preview mode is active
  * - isDirty: Whether there are unsaved changes
+ * - lastFetchTime: Timestamp of last data fetch
  *
  * Requirements: 4.1, 4.2, 4.3 - Real-time Preview
  */
-export const useEditorStore = create<EditorState>((set) => ({
+export const useEditorStore = create<EditorState>((set, get) => ({
   // State
   links: [],
   theme: 'aurora' as ThemeType,
   previewMode: false,
   isDirty: false,
+  lastFetchTime: 0,
 
   // Actions
 
@@ -120,6 +122,34 @@ export const useEditorStore = create<EditorState>((set) => ({
    */
   resetDirty: () => {
     set({ isDirty: false });
+  },
+
+  /**
+   * Set the timestamp of last data fetch
+   */
+  setLastFetchTime: (time) => {
+    set({ lastFetchTime: time });
+  },
+
+  /**
+   * Check if data should be refetched based on refresh interval
+   */
+  shouldFetch: (refreshInterval) => {
+    const { lastFetchTime } = get();
+    return Date.now() - lastFetchTime > refreshInterval;
+  },
+
+  /**
+   * Clear all store data (for logout)
+   */
+  clear: () => {
+    set({
+      links: [],
+      theme: 'aurora' as ThemeType,
+      previewMode: false,
+      isDirty: false,
+      lastFetchTime: 0,
+    });
   },
 }));
 

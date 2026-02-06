@@ -29,6 +29,7 @@ export const useLayoutStore = create<LayoutEditorState>((set, get) => ({
   isEditing: true, // Default to editing mode (Requirements: 23.1)
   mobileLayout: [],
   desktopLayout: [], // Kept for type compatibility but not used
+  lastFetchTime: 0,
 
   // Actions
 
@@ -140,6 +141,36 @@ export const useLayoutStore = create<LayoutEditorState>((set, get) => ({
    */
   toggleEditing: () => {
     set((state) => ({ isEditing: !state.isEditing }));
+  },
+
+  /**
+   * Set the timestamp of last data fetch
+   */
+  setLastFetchTime: (time) => {
+    set({ lastFetchTime: time });
+  },
+
+  /**
+   * Check if data should be refetched based on refresh interval
+   */
+  shouldFetch: (refreshInterval) => {
+    const { lastFetchTime } = get();
+    return Date.now() - lastFetchTime > refreshInterval;
+  },
+
+  /**
+   * Clear all store data (for logout)
+   */
+  clear: () => {
+    set({
+      modules: [],
+      layout: [],
+      deviceMode: 'mobile',
+      isEditing: true,
+      mobileLayout: [],
+      desktopLayout: [],
+      lastFetchTime: 0,
+    });
   },
 }));
 

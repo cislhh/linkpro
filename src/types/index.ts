@@ -69,7 +69,8 @@ export interface EditorState {
   theme: ThemeType;
   previewMode: boolean;
   isDirty: boolean;
-  
+  lastFetchTime: number;
+
   // Actions
   addLink: (link: Omit<Link, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => void;
   updateLink: (id: string, data: Partial<Link>) => void;
@@ -79,6 +80,9 @@ export interface EditorState {
   togglePreviewMode: () => void;
   setLinks: (links: Link[]) => void;
   resetDirty: () => void;
+  setLastFetchTime: (time: number) => void;
+  shouldFetch: (refreshInterval: number) => boolean;
+  clear: () => void;
 }
 
 // Server Action result type - generic wrapper for action responses
@@ -217,11 +221,15 @@ export interface LayoutEditorState {
   // Separate layouts for mobile and desktop
   mobileLayout: LayoutItem[];
   desktopLayout: LayoutItem[];
-  
+  lastFetchTime: number;
+
   // Actions
   setModules: (modules: PageModule[]) => Promise<void>;
   updateLayout: (layout: LayoutItem[]) => void;
   saveLayout: () => Promise<void>;
   toggleEditing: () => void;
   setDeviceMode: (mode: DeviceMode) => void;
+  setLastFetchTime: (time: number) => void;
+  shouldFetch: (refreshInterval: number) => boolean;
+  clear: () => void;
 }

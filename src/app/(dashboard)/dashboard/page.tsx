@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useSession } from "next-auth/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,6 @@ import { LayoutGrid, Eye, Palette, ExternalLink } from "lucide-react";
 import { ModuleSelector, ModuleList, ModuleEditDialog } from "@/components/features/modules";
 import { useEditorStore } from "@/stores/editor-store";
 import { useLayoutStore } from "@/stores/layout-store";
-import { getUserLinks } from "@/actions/link-actions";
 import { getModules } from "@/actions/module-actions";
 import type { PageModule } from "@/types";
 
@@ -22,10 +21,9 @@ import type { PageModule } from "@/types";
  */
 export default function DashboardPage() {
     const { data: session } = useSession();
-    const { theme, setLinks } = useEditorStore();
-    const { layout: mobileLayout } = useLayoutStore();
+    const { theme, links } = useEditorStore();
+    const { layout: mobileLayout, modules: storeModules } = useLayoutStore();
     const [modules, setModules] = useState<PageModule[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
 
     // Edit dialog state
     const [editingModule, setEditingModule] = useState<PageModule | null>(null);
@@ -54,41 +52,14 @@ export default function DashboardPage() {
     }, [modules, mobileLayout]);
 
     /**
-     * Load modules and links from server on initial mount
-     *
-     * Requirements: 11.1, 2.2
+     * Sync modules from store to local state
+     * This ensures modules are loaded from DataProvider
      */
-    const loadData = useCallback(async () => {
-        let isMounted = true;
-
-        setIsLoading(true);
-        try {
-            const [linksResult, modulesResult] = await Promise.all([
-                getUserLinks(),
-                getModules(),
-            ]);
-
-            if (isMounted) {
-                if (linksResult.success) {
-                    setLinks(linksResult.data);
-                }
-
-                if (modulesResult.success) {
-                    setModules(modulesResult.data);
-                }
-            }
-        } catch (error) {
-            console.error("Failed to load dashboard data:", error);
-        } finally {
-            if (isMounted) {
-                setIsLoading(false);
-            }
-        }
-    }, [setLinks]);
-
     useEffect(() => {
-        loadData();
-    }, [loadData]);
+        if (storeModules.length > 0 && modules.length === 0) {
+            setModules(storeModules);
+        }
+    }, [storeModules, modules.length]);
 
     /**
      * Handle module creation - add to local state
@@ -115,8 +86,11 @@ export default function DashboardPage() {
     /**
      * Handle module edit success - refresh module list
      */
-    const handleModuleEditSuccess = () => {
-        loadData();
+    const handleModuleEditSuccess = async () => {
+        const result = await getModules();
+        if (result.success) {
+            setModules(result.data);
+        }
     };
 
     return (
@@ -165,7 +139,7 @@ export default function DashboardPage() {
                 <ModuleSelector onModuleCreated={handleModuleCreated} />
 
                 {/* Module List */}
-                {isLoading ? (
+                {modules.length === 0 && storeModules.length === 0 ? (
                     <Card>
                         <CardContent className="flex items-center justify-center py-12">
                             <div className="text-muted-foreground">加载中...</div>
