@@ -12,7 +12,6 @@ import {
     ChevronRight,
     User,
     ExternalLink,
-    Grid3X3,
     Link2,
     UserCircle
 } from "lucide-react";
@@ -34,23 +33,16 @@ interface NavItem {
 
 /**
  * Navigation items for the dashboard sidebar
- * 
- * Updated to reflect the new page module system:
- * - "页面管理" replaces "链接管理" for managing all module types
- * - "布局编辑" added for drag-and-drop layout customization
- * 
- * Requirements: 11.1, 12.1
+ *
+ * Layout editor has been removed - layout is now managed automatically
+ *
+ * Requirements: 11.1
  */
 const navItems: NavItem[] = [
     {
         href: "/dashboard",
         label: "页面管理",
         icon: <LayoutGrid className="h-5 w-5" />,
-    },
-    {
-        href: "/dashboard/layout-editor",
-        label: "布局编辑",
-        icon: <Grid3X3 className="h-5 w-5" />,
     },
     {
         href: "/dashboard/profile",

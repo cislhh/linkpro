@@ -7,7 +7,7 @@ import { useEditorStore } from "@/stores/editor-store";
 import { getModules } from "@/actions/module-actions";
 import { getUserLinks } from "@/actions/link-actions";
 import { getUserProfile } from "@/actions/user-actions";
-import { ModuleCard } from "@/components/features/layout-editor/module-card";
+import { ModuleCard } from "@/components/features/modules/module-card";
 import { getThemeStyles } from "./live-preview";
 import { cn } from "@/lib/utils";
 import type { PageModule, Link, LayoutItem, DeviceMode, ThemeType, Project } from "@/types";

@@ -13,6 +13,7 @@ export { ProjectsModule } from "./projects-module";
 export { ModuleSelector } from "./module-selector";
 export { ModuleList } from "./module-list";
 export { ModuleEditDialog } from "./module-edit-dialog";
+export { ModuleCard } from "./module-card";
 
 // Re-export types for convenience
 export type { PageModule, ModuleType, ModuleData } from "@/types";
